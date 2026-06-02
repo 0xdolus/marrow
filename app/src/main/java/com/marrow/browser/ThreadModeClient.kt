@@ -6,7 +6,7 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import java.io.ByteArrayInputStream
 
-class ThreadModeClient : WebViewClient() {
+open class ThreadModeClient : WebViewClient() {
 
     var isFullMode = false
 

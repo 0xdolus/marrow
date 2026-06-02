@@ -28,14 +28,22 @@ class MainActivity : AppCompatActivity() {
         threadBadge = findViewById(R.id.threadBadge)
         fullPageBtn = findViewById(R.id.fullPageBtn)
 
-        threadModeClient = object : ThreadModeClient() {
+        threadModeClient = ThreadModeClient()
+        webView.webViewClient = threadModeClient
+        webView.settings.javaScriptEnabled = false
+
+        webView.webViewClient = object : WebViewClient() {
             override fun onPageFinished(view: WebView, url: String) {
                 urlText.text = url
             }
-        }
 
-        webView.webViewClient = threadModeClient
-        webView.settings.javaScriptEnabled = false
+            override fun shouldInterceptRequest(
+                view: WebView,
+                request: android.webkit.WebResourceRequest
+            ): android.webkit.WebResourceResponse? {
+                return threadModeClient.shouldInterceptRequest(view, request)
+            }
+        }
 
         fullPageBtn.setOnClickListener {
             if (threadModeClient.isFullMode) {
