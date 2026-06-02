@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Core palette — never hardcode colors elsewhere, always reference these -->
+    <color name="bg">#0f0f0f</color>
+    <color name="chrome_bg">#0f0f0f</color>
+    <color name="url_bar_bg">#171717</color>
+    <color name="border">#2a2a2a</color>
+    <color name="text">#f0ead6</color>
+    <color name="text_muted">#888888</color>
+    <color name="text_dim">#555555</color>
+    <color name="accent_green">#5a9a5a</color>
+    <color name="accent_blue">#8ab8d8</color>
+    <!-- Memory pip states -->
+    <color name="mem_green">#4ade80</color>
+    <color name="mem_yellow">#facc15</color>
+    <color name="mem_red">#f87171</color>
+</resources>
