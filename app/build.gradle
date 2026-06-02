@@ -4,6 +4,7 @@ plugins {
 }
 
 android {
+    namespace "com.marrow.browser"
     compileSdk 34
 
     defaultConfig {
