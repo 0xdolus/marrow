@@ -6,14 +6,50 @@
     android:orientation="vertical"
     android:background="@color/bg">
 
-    <!-- WebView fills all space above bottom chrome -->
-    <WebView
-        android:id="@+id/webView"
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1" />
+        android:layout_weight="1">
 
-    <!-- Bottom chrome — URL bar lives here, thumb-reachable -->
+        <WebView
+            android:id="@+id/webView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+        <TextView
+            android:id="@+id/threadBadge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="top|start"
+            android:layout_margin="10dp"
+            android:text="@string/thread_mode"
+            android:textColor="@color/accent_green"
+            android:textSize="10sp"
+            android:fontFamily="monospace"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp"
+            android:background="@drawable/bg_thread_badge"
+            android:visibility="visible" />
+
+        <Button
+            android:id="@+id/fullPageBtn"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:layout_gravity="bottom|center_horizontal"
+            android:layout_marginBottom="10dp"
+            android:text="@string/full_page"
+            android:textColor="@color/text_muted"
+            android:textSize="11sp"
+            android:fontFamily="monospace"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:background="@drawable/bg_full_btn"
+            android:stateListAnimator="@null" />
+
+    </FrameLayout>
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -24,7 +60,6 @@
         android:paddingTop="10dp"
         android:paddingBottom="20dp">
 
-        <!-- URL bar -->
         <TextView
             android:id="@+id/urlText"
             android:layout_width="match_parent"

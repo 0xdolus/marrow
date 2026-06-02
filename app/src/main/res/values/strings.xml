@@ -2,17 +2,14 @@
 <resources>
     <string name="app_name">Marrow</string>
     <string name="loading">loading…</string>
-    <!-- Thread / Full mode -->
     <string name="thread_mode">Thread mode</string>
     <string name="full_page">Full page</string>
-    <!-- JS permission banner -->
+    <string name="thread_mode_short">← Text only</string>
     <string name="js_wants_scripts">This page wants to run scripts.</string>
     <string name="js_allow_always">Allow always</string>
     <string name="js_allow_once">Allow once</string>
     <string name="js_keep_off">Keep off</string>
-    <!-- Memory -->
     <string name="low_memory">Low memory — oldest tab suspended.</string>
-    <!-- Tabs -->
     <string name="tab_limit_toast">Tab limit reached. Oldest tab closed.</string>
     <string name="tab_resuming">Resuming tab…</string>
 </resources>
