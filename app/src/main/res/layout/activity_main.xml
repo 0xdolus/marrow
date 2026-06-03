@@ -16,6 +16,7 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent" />
 
+        <!-- Thread mode badge — top-left -->
         <TextView
             android:id="@+id/threadBadge"
             android:layout_width="wrap_content"
@@ -33,6 +34,87 @@
             android:background="@drawable/bg_thread_badge"
             android:visibility="visible" />
 
+        <!-- JS permission banner — GONE by default -->
+        <LinearLayout
+            android:id="@+id/jsBanner"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="top"
+            android:layout_marginStart="10dp"
+            android:layout_marginEnd="10dp"
+            android:layout_marginTop="44dp"
+            android:orientation="vertical"
+            android:background="@drawable/bg_js_banner"
+            android:padding="12dp"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/jsBannerDomain"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/accent_blue"
+                android:textSize="11sp"
+                android:fontFamily="monospace"
+                android:layout_marginBottom="2dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/js_wants_scripts"
+                android:textColor="@color/text_dim"
+                android:textSize="11sp"
+                android:fontFamily="monospace"
+                android:layout_marginBottom="10dp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:weightSum="3">
+
+                <Button
+                    android:id="@+id/jsAllowAlwaysBtn"
+                    android:layout_width="0dp"
+                    android:layout_height="30dp"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="4dp"
+                    android:text="@string/js_allow_always"
+                    android:textColor="@color/accent_green"
+                    android:textSize="9sp"
+                    android:fontFamily="monospace"
+                    android:background="@drawable/bg_js_btn"
+                    android:stateListAnimator="@null" />
+
+                <Button
+                    android:id="@+id/jsAllowOnceBtn"
+                    android:layout_width="0dp"
+                    android:layout_height="30dp"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="4dp"
+                    android:text="@string/js_allow_once"
+                    android:textColor="@color/text_muted"
+                    android:textSize="9sp"
+                    android:fontFamily="monospace"
+                    android:background="@drawable/bg_js_btn"
+                    android:stateListAnimator="@null" />
+
+                <Button
+                    android:id="@+id/jsKeepOffBtn"
+                    android:layout_width="0dp"
+                    android:layout_height="30dp"
+                    android:layout_weight="1"
+                    android:text="@string/js_keep_off"
+                    android:textColor="#9a6a6a"
+                    android:textSize="9sp"
+                    android:fontFamily="monospace"
+                    android:background="@drawable/bg_js_btn"
+                    android:stateListAnimator="@null" />
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <!-- Full page / Text only toggle — bottom-center -->
         <Button
             android:id="@+id/fullPageBtn"
             android:layout_width="wrap_content"
@@ -50,6 +132,7 @@
 
     </FrameLayout>
 
+    <!-- Bottom chrome -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
