@@ -6,6 +6,7 @@
     android:orientation="vertical"
     android:background="@color/bg">
 
+    <!-- WebView area with overlays -->
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
@@ -15,6 +16,49 @@
             android:id="@+id/webView"
             android:layout_width="match_parent"
             android:layout_height="match_parent" />
+
+        <!--
+            Suspended overlay — shown over the WebView while a tab reloads after a switch.
+            Dark background + dimmed thumbnail + spinner so the user knows it's resuming.
+        -->
+        <FrameLayout
+            android:id="@+id/suspendedOverlay"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@color/bg"
+            android:visibility="gone">
+
+            <ImageView
+                android:id="@+id/suspendedThumb"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="centerCrop"
+                android:alpha="0.25" />
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:orientation="vertical"
+                android:gravity="center">
+
+                <ProgressBar
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:indeterminateTint="@color/text_dim" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/tab_resuming"
+                    android:textColor="@color/text_dim"
+                    android:textSize="11sp"
+                    android:fontFamily="monospace"
+                    android:layout_marginTop="10dp" />
+
+            </LinearLayout>
+
+        </FrameLayout>
 
         <!-- Thread mode badge — top-left -->
         <TextView
@@ -34,7 +78,7 @@
             android:background="@drawable/bg_thread_badge"
             android:visibility="visible" />
 
-        <!-- JS permission banner — GONE by default -->
+        <!-- JS permission banner — appears below the badge when a page requests scripts -->
         <LinearLayout
             android:id="@+id/jsBanner"
             android:layout_width="match_parent"
@@ -114,7 +158,7 @@
 
         </LinearLayout>
 
-        <!-- Full page / Text only toggle — bottom-center -->
+        <!-- Full page toggle button — bottom-center -->
         <Button
             android:id="@+id/fullPageBtn"
             android:layout_width="wrap_content"
@@ -132,7 +176,7 @@
 
     </FrameLayout>
 
-    <!-- Bottom chrome -->
+    <!-- Bottom chrome: tab strip + URL bar -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -142,6 +186,22 @@
         android:paddingEnd="12dp"
         android:paddingTop="10dp"
         android:paddingBottom="20dp">
+
+        <!-- Tab strip — scrollable row of pills + "+" button -->
+        <HorizontalScrollView
+            android:layout_width="match_parent"
+            android:layout_height="30dp"
+            android:scrollbars="none"
+            android:layout_marginBottom="8dp">
+
+            <LinearLayout
+                android:id="@+id/tabStripInner"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:orientation="horizontal"
+                android:gravity="center_vertical" />
+
+        </HorizontalScrollView>
 
         <TextView
             android:id="@+id/urlText"

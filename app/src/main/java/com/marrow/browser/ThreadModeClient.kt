@@ -15,14 +15,14 @@ class ThreadModeClient(
 
     var isFullMode = false
 
+    // Set by MainActivity after construction — called on UI thread when page finishes loading
+    var onPageLoaded: ((url: String) -> Unit)? = null
+
     private val jsAllowedAlways = mutableSetOf<String>()
     private val jsAllowedOnce   = mutableSetOf<String>()
-    // Tracks domains where banner already shown — avoids spamming
     private val jsPending       = mutableSetOf<String>()
 
-    fun loadAllowedAlways(domains: Set<String>) {
-        jsAllowedAlways.addAll(domains)
-    }
+    fun loadAllowedAlways(domains: Set<String>) { jsAllowedAlways.addAll(domains) }
 
     fun allowAlways(domain: String) {
         jsAllowedAlways.add(domain)
@@ -34,19 +34,19 @@ class ThreadModeClient(
         jsPending.remove(domain)
     }
 
-    fun denyJs(domain: String) {
-        jsPending.remove(domain)
-    }
+    fun denyJs(domain: String) { jsPending.remove(domain) }
 
     private fun isJsAllowed(domain: String) =
         jsAllowedAlways.contains(domain) || jsAllowedOnce.contains(domain)
 
     override fun onPageFinished(view: WebView, url: String) {
         urlText.text = url
+        onPageLoaded?.invoke(url)
     }
 
     override fun onPageStarted(view: WebView, url: String, favicon: Bitmap?) {
-        // Clear pending on new page so banner can fire again on next page
+        // Clear once-allowed set and pending set on each new navigation
+        jsAllowedOnce.clear()
         jsPending.clear()
     }
 
@@ -63,7 +63,6 @@ class ThreadModeClient(
 
         if (isJsUrl(url)) {
             if (isJsAllowed(domain)) return null
-            // First JS request from this domain — fire callback on UI thread
             if (!jsPending.contains(domain)) {
                 jsPending.add(domain)
                 view.post { onJsRequested(domain) }
