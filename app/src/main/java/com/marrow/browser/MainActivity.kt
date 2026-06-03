@@ -15,6 +15,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var fullPageBtn: Button
     private lateinit var threadModeClient: ThreadModeClient
 
+    private var isFullMode = false
+
     companion object {
         const val HOME_URL = "https://text.npr.org"
     }
@@ -28,34 +30,21 @@ class MainActivity : AppCompatActivity() {
         threadBadge = findViewById(R.id.threadBadge)
         fullPageBtn = findViewById(R.id.fullPageBtn)
 
-        threadModeClient = ThreadModeClient()
-        webView.webViewClient = threadModeClient
+        threadModeClient = ThreadModeClient(urlText)
         webView.settings.javaScriptEnabled = false
-
-        webView.webViewClient = object : WebViewClient() {
-            override fun onPageFinished(view: WebView, url: String) {
-                urlText.text = url
-            }
-
-            override fun shouldInterceptRequest(
-                view: WebView,
-                request: android.webkit.WebResourceRequest
-            ): android.webkit.WebResourceResponse? {
-                return threadModeClient.shouldInterceptRequest(view, request)
-            }
-        }
+        webView.webViewClient = threadModeClient
 
         fullPageBtn.setOnClickListener {
-            if (threadModeClient.isFullMode) {
-                threadModeClient.isFullMode = false
-                webView.settings.javaScriptEnabled = false
-                fullPageBtn.text = getString(R.string.full_page)
-                threadBadge.visibility = View.VISIBLE
-            } else {
-                threadModeClient.isFullMode = true
-                webView.settings.javaScriptEnabled = true
+            isFullMode = !isFullMode
+            threadModeClient.isFullMode = isFullMode
+            webView.settings.javaScriptEnabled = isFullMode
+
+            if (isFullMode) {
                 fullPageBtn.text = getString(R.string.thread_mode_short)
                 threadBadge.visibility = View.GONE
+            } else {
+                fullPageBtn.text = getString(R.string.full_page)
+                threadBadge.visibility = View.VISIBLE
             }
             webView.reload()
         }
