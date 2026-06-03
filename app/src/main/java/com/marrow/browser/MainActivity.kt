@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Typeface
+import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.util.TypedValue
 import android.view.Gravity
@@ -36,6 +37,10 @@ class MainActivity : AppCompatActivity() {
     private lateinit var suspendedOverlay: FrameLayout
     private lateinit var suspendedThumb: ImageView
 
+    private lateinit var pipDot: View
+    private lateinit var memBanner: TextView
+    private lateinit var memoryMonitor: MemoryMonitor
+
     private val tabManager = TabManager()
     private var pendingJsDomain: String? = null
 
@@ -61,10 +66,11 @@ class MainActivity : AppCompatActivity() {
         tabStripInner    = findViewById(R.id.tabStripInner)
         suspendedOverlay = findViewById(R.id.suspendedOverlay)
         suspendedThumb   = findViewById(R.id.suspendedThumb)
+        pipDot           = findViewById(R.id.pipDot)
+        memBanner        = findViewById(R.id.memBanner)
 
         threadModeClient = ThreadModeClient(urlText) { domain -> showJsBanner(domain) }
 
-        // When a page finishes loading: hide suspended overlay, update tab metadata, refresh strip
         threadModeClient.onPageLoaded = { url ->
             tabManager.updateActiveUrl(url)
             tabManager.setActiveSuspended(false)
@@ -80,6 +86,8 @@ class MainActivity : AppCompatActivity() {
 
         webView.settings.javaScriptEnabled = true
         webView.webViewClient = threadModeClient
+
+        memoryMonitor = MemoryMonitor(this) { level -> updatePip(level) }
 
         fullPageBtn.setOnClickListener {
             val tab = tabManager.getActiveTab() ?: return@setOnClickListener
@@ -121,9 +129,32 @@ class MainActivity : AppCompatActivity() {
         openNewTab(HOME_URL)
     }
 
+    override fun onResume() {
+        super.onResume()
+        memoryMonitor.start()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        memoryMonitor.stop()
+    }
+
+    // --- Memory pip ---
+
+    /** Update pip dot color and show/hide the low memory banner. */
+    private fun updatePip(level: MemoryMonitor.Level) {
+        val color = when (level) {
+            MemoryMonitor.Level.GREEN  -> ContextCompat.getColor(this, R.color.mem_green)
+            MemoryMonitor.Level.YELLOW -> ContextCompat.getColor(this, R.color.mem_yellow)
+            MemoryMonitor.Level.RED    -> ContextCompat.getColor(this, R.color.mem_red)
+        }
+        // mutate() ensures we don't affect other views sharing this drawable resource
+        (pipDot.background.mutate() as? GradientDrawable)?.setColor(color)
+        memBanner.visibility = if (level == MemoryMonitor.Level.RED) View.VISIBLE else View.GONE
+    }
+
     // --- Tab management ---
 
-    /** Capture the current WebView pixels into a Bitmap. Returns null if WebView has no size. */
     private fun captureWebView(): Bitmap? {
         if (webView.width <= 0 || webView.height <= 0) return null
         return try {
@@ -135,13 +166,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    /**
-     * Open a new tab at the given URL.
-     * If already at max tabs, the oldest is auto-closed and a Toast is shown.
-     * Any existing active tab is suspended (screenshot saved) before the new tab loads.
-     */
     private fun openNewTab(url: String) {
-        // Save screenshot and suspend current tab (skip on very first open — no active tab yet)
         if (tabManager.getActiveTab() != null) {
             tabManager.updateActiveThumbnail(captureWebView())
             tabManager.setActiveSuspended(true)
@@ -153,7 +178,6 @@ class MainActivity : AppCompatActivity() {
             Toast.makeText(this, getString(R.string.tab_limit_toast), Toast.LENGTH_SHORT).show()
         }
 
-        // New tab always starts in thread mode
         threadModeClient.isFullMode = false
         syncFullModeUI(false)
         hideJsBanner()
@@ -163,24 +187,17 @@ class MainActivity : AppCompatActivity() {
         webView.loadUrl(url)
     }
 
-    /**
-     * Switch to an already-open tab by ID.
-     * Captures the current tab, shows the suspended overlay with the target's last screenshot,
-     * then loads the target tab's URL.
-     */
     private fun switchToTab(tabId: Int) {
         val current = tabManager.getActiveTab()
         if (current?.id == tabId) return
 
-        // Save screenshot of the tab we're leaving
         current?.let {
-            it.thumbnail  = captureWebView()
+            it.thumbnail   = captureWebView()
             it.isSuspended = true
         }
 
         val target = tabManager.switchToTab(tabId) ?: return
 
-        // Show the target's old screenshot (dimmed) + spinner while it reloads
         suspendedThumb.setImageBitmap(target.thumbnail)
         suspendedOverlay.visibility = View.VISIBLE
 
@@ -192,22 +209,21 @@ class MainActivity : AppCompatActivity() {
         webView.loadUrl(target.url)
     }
 
-    /** Rebuild the tab strip from current TabManager state. */
     private fun renderTabStrip() {
         tabStripInner.removeAllViews()
 
         val activeId = tabManager.activeTabId
-        val dp6 = (6 * resources.displayMetrics.density).toInt()
-        val pillH = LinearLayout.LayoutParams.MATCH_PARENT
+        val dp6      = (6 * resources.displayMetrics.density).toInt()
+        val pillH    = LinearLayout.LayoutParams.MATCH_PARENT
 
         for (tab in tabManager.getTabs()) {
             val isActive = tab.id == activeId
             val label    = tab.title.let { if (it.length > 16) it.take(14) + "…" else it }
 
             val pill = TextView(this).apply {
-                text      = label
-                typeface  = Typeface.MONOSPACE
-                gravity   = Gravity.CENTER
+                text     = label
+                typeface = Typeface.MONOSPACE
+                gravity  = Gravity.CENTER
                 setTextSize(TypedValue.COMPLEX_UNIT_SP, 10f)
                 setTextColor(ContextCompat.getColor(
                     this@MainActivity,
@@ -226,11 +242,10 @@ class MainActivity : AppCompatActivity() {
             tabStripInner.addView(pill)
         }
 
-        // "+" new tab button
         val newBtn = TextView(this).apply {
-            text      = "+"
-            typeface  = Typeface.MONOSPACE
-            gravity   = Gravity.CENTER
+            text     = "+"
+            typeface = Typeface.MONOSPACE
+            gravity  = Gravity.CENTER
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
             setTextColor(ContextCompat.getColor(this@MainActivity, R.color.text_muted))
             setPadding(dp6 * 4, 0, dp6 * 4, 0)
@@ -269,3 +284,4 @@ class MainActivity : AppCompatActivity() {
         if (webView.canGoBack()) webView.goBack() else super.onBackPressed()
     }
 }
+

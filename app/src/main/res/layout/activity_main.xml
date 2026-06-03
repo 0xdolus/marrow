@@ -17,10 +17,7 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent" />
 
-        <!--
-            Suspended overlay — shown over the WebView while a tab reloads after a switch.
-            Dark background + dimmed thumbnail + spinner so the user knows it's resuming.
-        -->
+        <!-- Suspended overlay — dark thumbnail + spinner while a tab reloads after switch -->
         <FrameLayout
             android:id="@+id/suspendedOverlay"
             android:layout_width="match_parent"
@@ -78,7 +75,7 @@
             android:background="@drawable/bg_thread_badge"
             android:visibility="visible" />
 
-        <!-- JS permission banner — appears below the badge when a page requests scripts -->
+        <!-- JS permission banner -->
         <LinearLayout
             android:id="@+id/jsBanner"
             android:layout_width="match_parent"
@@ -174,7 +171,34 @@
             android:background="@drawable/bg_full_btn"
             android:stateListAnimator="@null" />
 
+        <!-- Memory pip — small circle, top-right, always visible -->
+        <View
+            android:id="@+id/pipDot"
+            android:layout_width="8dp"
+            android:layout_height="8dp"
+            android:layout_gravity="top|end"
+            android:layout_margin="14dp"
+            android:background="@drawable/bg_pip" />
+
     </FrameLayout>
+
+    <!--
+        Low memory banner — sits between the WebView and the bottom chrome.
+        Only visible when memory level is RED. Slim, non-intrusive.
+    -->
+    <TextView
+        android:id="@+id/memBanner"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/low_memory"
+        android:textColor="@color/mem_red"
+        android:textSize="10sp"
+        android:fontFamily="monospace"
+        android:gravity="center"
+        android:paddingTop="5dp"
+        android:paddingBottom="5dp"
+        android:background="#1f0a0a"
+        android:visibility="gone" />
 
     <!-- Bottom chrome: tab strip + URL bar -->
     <LinearLayout
@@ -187,7 +211,6 @@
         android:paddingTop="10dp"
         android:paddingBottom="20dp">
 
-        <!-- Tab strip — scrollable row of pills + "+" button -->
         <HorizontalScrollView
             android:layout_width="match_parent"
             android:layout_height="30dp"
