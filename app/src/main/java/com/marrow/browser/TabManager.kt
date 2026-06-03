@@ -23,7 +23,6 @@ class TabManager {
         const val MAX_TABS = 4
     }
 
-    // Returns the new tab, plus whether the oldest was auto-closed to make room
     data class OpenResult(val tab: Tab, val oldestClosed: Boolean)
 
     fun openTab(url: String): OpenResult {
@@ -33,6 +32,25 @@ class TabManager {
         tabs.add(tab)
         activeTabId = tab.id
         return OpenResult(tab, oldestClosed)
+    }
+
+    /**
+     * Close a tab by id. If the closed tab was active, the nearest remaining tab
+     * becomes active. Returns the new active tab, or null if no tabs remain.
+     */
+    fun closeTab(id: Int): Tab? {
+        val index = tabs.indexOfFirst { it.id == id }
+        if (index == -1) return null
+        tabs.removeAt(index)
+        if (tabs.isEmpty()) {
+            activeTabId = -1
+            return null
+        }
+        if (activeTabId == id) {
+            // Pick the tab that slid into this position, or the last one
+            activeTabId = tabs[minOf(index, tabs.size - 1)].id
+        }
+        return getActiveTab()
     }
 
     fun getActiveTab(): Tab? = tabs.find { it.id == activeTabId }
@@ -47,11 +65,8 @@ class TabManager {
         return tab
     }
 
-    fun updateActiveUrl(url: String) { getActiveTab()?.url = url }
-
-    fun updateActiveTitle(title: String) { getActiveTab()?.title = title }
-
-    fun updateActiveThumbnail(bmp: Bitmap?) { getActiveTab()?.thumbnail = bmp }
-
+    fun updateActiveUrl(url: String)        { getActiveTab()?.url       = url  }
+    fun updateActiveTitle(title: String)    { getActiveTab()?.title     = title }
+    fun updateActiveThumbnail(bmp: Bitmap?) { getActiveTab()?.thumbnail = bmp  }
     fun setActiveSuspended(suspended: Boolean) { getActiveTab()?.isSuspended = suspended }
 }

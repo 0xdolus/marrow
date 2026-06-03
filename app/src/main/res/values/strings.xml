@@ -12,4 +12,5 @@
     <string name="low_memory">Low memory — oldest tab suspended.</string>
     <string name="tab_limit_toast">Tab limit reached. Oldest tab closed.</string>
     <string name="tab_resuming">Resuming tab…</string>
+    <string name="url_hint">Enter address or search</string>
 </resources>
