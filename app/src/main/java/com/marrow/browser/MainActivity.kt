@@ -21,7 +21,6 @@ import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ProgressBar
-import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -91,7 +90,6 @@ class MainActivity : AppCompatActivity() {
         threadModeClient = ThreadModeClient { domain -> showJsBanner(domain) }
 
         threadModeClient.onPageLoaded = { url ->
-            // Only update the address bar if the user isn't typing in it
             if (!urlInput.hasFocus()) urlInput.setText(url)
             tabManager.updateActiveUrl(url)
             tabManager.setActiveSuspended(false)
@@ -99,7 +97,6 @@ class MainActivity : AppCompatActivity() {
             tabManager.updateActiveTitle(title)
             suspendedOverlay.visibility = View.GONE
             renderTabStrip()
-            // Read the page's theme-color meta tag and tint the chrome
             readThemeColor()
         }
 
@@ -110,7 +107,6 @@ class MainActivity : AppCompatActivity() {
         webView.settings.javaScriptEnabled = true
         webView.webViewClient = threadModeClient
 
-        // Loading bar driven by real page progress
         webView.webChromeClient = object : WebChromeClient() {
             override fun onProgressChanged(view: WebView, newProgress: Int) {
                 loadingBar.progress   = newProgress
@@ -120,14 +116,15 @@ class MainActivity : AppCompatActivity() {
 
         memoryMonitor = MemoryMonitor(this) { level -> updatePip(level) }
 
-        // --- Button listeners ---
-
         fullPageBtn.setOnClickListener {
             val tab = tabManager.getActiveTab() ?: return@setOnClickListener
             tab.isFullMode = !tab.isFullMode
             threadModeClient.isFullMode = tab.isFullMode
             hideJsBanner()
             syncFullModeUI(tab.isFullMode)
+            // Clear cache when returning to thread mode so JS can't be served from cache
+            // and shouldInterceptRequest fires correctly on reload
+            if (!tab.isFullMode) webView.clearCache(true)
             webView.reload()
         }
 
@@ -153,17 +150,14 @@ class MainActivity : AppCompatActivity() {
         }
 
         jsKeepOffBtn.setOnClickListener {
-            // Block all remaining JS banners for this page — one tap, done
             threadModeClient.blockAllJsForPage()
             hideJsBanner()
         }
 
         tabCountBtn.setOnClickListener { toggleTabOverlay() }
 
-        // Dismiss tab overlay when tapping outside (the overlay background itself)
         tabOverlay.setOnClickListener { tabOverlay.visibility = View.GONE }
 
-        // URL bar — handle Go action and back button dismiss
         urlInput.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_GO) {
                 val raw = urlInput.text.toString().trim()
@@ -191,12 +185,6 @@ class MainActivity : AppCompatActivity() {
 
     // --- URL handling ---
 
-    /**
-     * Normalize user input into a loadable URL.
-     * - Already a URL → use as-is
-     * - Looks like a domain (has a dot, no spaces) → prepend https://
-     * - Everything else → DuckDuckGo HTML search (text-friendly, fits the philosophy)
-     */
     private fun normalizeUrl(input: String): String {
         if (input.startsWith("http://") || input.startsWith("https://")) return input
         return if (input.contains(".") && !input.contains(" ")) {
@@ -218,11 +206,6 @@ class MainActivity : AppCompatActivity() {
 
     // --- Theme color bleed ---
 
-    /**
-     * Read <meta name="theme-color"> from the loaded page via JS and tint the chrome.
-     * Falls back to chrome_bg if absent or unparseable.
-     * evaluateJavascript works even in thread mode — it's our own call, not the page's JS.
-     */
     private fun readThemeColor() {
         webView.evaluateJavascript(
             "(function(){ var m=document.querySelector('meta[name=\"theme-color\"]'); return m?m.content:''; })()"
@@ -276,7 +259,7 @@ class MainActivity : AppCompatActivity() {
         syncFullModeUI(false)
         hideJsBanner()
         suspendedOverlay.visibility = View.GONE
-        tabOverlay.visibility = View.GONE
+        tabOverlay.visibility       = View.GONE
 
         renderTabStrip()
         webView.loadUrl(url)
@@ -334,7 +317,6 @@ class MainActivity : AppCompatActivity() {
             tabStripInner.addView(pill)
         }
 
-        // "+" new tab button
         val newBtn = TextView(this).apply {
             text     = "+"
             typeface = Typeface.MONOSPACE
@@ -364,21 +346,19 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    /** Build tab cards programmatically — same pattern as tab pills. */
     private fun renderTabOverlay() {
         tabCardList.removeAllViews()
 
-        val dp   = resources.displayMetrics.density
-        val dp8  = (8  * dp).toInt()
-        val dp32 = (32 * dp).toInt()
-        val dp64 = (64 * dp).toInt()
-        val dp80 = (80 * dp).toInt()
+        val dp      = resources.displayMetrics.density
+        val dp8     = (8  * dp).toInt()
+        val dp32    = (32 * dp).toInt()
+        val dp64    = (64 * dp).toInt()
+        val dp80    = (80 * dp).toInt()
         val activeId = tabManager.activeTabId
 
         for (tab in tabManager.getTabs()) {
             val isActive = tab.id == activeId
 
-            // Card row
             val card = LinearLayout(this).apply {
                 orientation = LinearLayout.HORIZONTAL
                 background  = ContextCompat.getDrawable(this@MainActivity, R.drawable.bg_tab_card)
@@ -388,7 +368,6 @@ class MainActivity : AppCompatActivity() {
                 ).also { it.bottomMargin = dp8 }
             }
 
-            // Thumbnail
             val thumb = ImageView(this).apply {
                 layoutParams = LinearLayout.LayoutParams(dp64, LinearLayout.LayoutParams.MATCH_PARENT)
                 scaleType    = ImageView.ScaleType.CENTER_CROP
@@ -396,7 +375,6 @@ class MainActivity : AppCompatActivity() {
                 background   = ContextCompat.getDrawable(this@MainActivity, R.drawable.bg_tab_pill)
             }
 
-            // Title + domain column
             val textCol = LinearLayout(this).apply {
                 orientation  = LinearLayout.VERTICAL
                 gravity      = Gravity.CENTER_VERTICAL
@@ -422,7 +400,6 @@ class MainActivity : AppCompatActivity() {
             textCol.addView(titleView)
             textCol.addView(domainView)
 
-            // Close button
             val closeBtn = TextView(this).apply {
                 text     = "×"
                 typeface = Typeface.MONOSPACE
@@ -450,7 +427,6 @@ class MainActivity : AppCompatActivity() {
         val wasActive = tabId == tabManager.activeTabId
         val newActive = tabManager.closeTab(tabId)
 
-        // If no tabs left, open a fresh one
         if (tabManager.getTabs().isEmpty()) {
             tabOverlay.visibility = View.GONE
             openNewTab(HOME_URL)
@@ -458,7 +434,6 @@ class MainActivity : AppCompatActivity() {
         }
 
         if (wasActive && newActive != null) {
-            // The active tab was closed — load the new active tab immediately
             tabOverlay.visibility = View.GONE
             threadModeClient.isFullMode = newActive.isFullMode
             syncFullModeUI(newActive.isFullMode)
@@ -470,7 +445,6 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
-        // Non-active tab was closed — just refresh the UI
         renderTabStrip()
         renderTabOverlay()
     }
