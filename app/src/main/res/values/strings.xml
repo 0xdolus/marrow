@@ -17,4 +17,5 @@
     <string name="cf_message">This site requires scripts to pass Cloudflare\'s security check.</string>
     <string name="cf_allow">Allow scripts</string>
     <string name="cf_dismiss">Stay blocked</string>
+    <string name="img_search">img</string>
 </resources>

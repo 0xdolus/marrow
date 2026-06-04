@@ -59,6 +59,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var chromeBg: View
     private lateinit var memoryMonitor: MemoryMonitor
 
+    private lateinit var imgSearchBtn: TextView
+
     private val tabManager = TabManager()
     private var pendingJsDomain: String? = null
     private var pendingCfDomain: String? = null
@@ -67,6 +69,7 @@ class MainActivity : AppCompatActivity() {
         const val HOME_URL        = "https://text.npr.org"
         const val PREFS_NAME      = "marrow_prefs"
         const val PREFS_JS_ALWAYS = "js_allowed_always"
+        const val DDG_IMAGE_BASE  = "https://duckduckgo.com/?iax=images&ia=images&q="
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -96,6 +99,7 @@ class MainActivity : AppCompatActivity() {
         pipDot           = findViewById(R.id.pipDot)
         memBanner        = findViewById(R.id.memBanner)
         chromeBg         = findViewById(R.id.chromeBg)
+        imgSearchBtn     = findViewById(R.id.imgSearchBtn)
 
         threadModeClient = ThreadModeClient { domain -> showJsBanner(domain) }
 
@@ -140,6 +144,7 @@ class MainActivity : AppCompatActivity() {
             hideJsBanner()
             hideCfBanner()
             syncFullModeUI(tab.isFullMode)
+            // Clear cache when returning to thread mode so shouldInterceptRequest fires correctly
             if (!tab.isFullMode) webView.clearCache(true)
             webView.reload()
         }
@@ -172,7 +177,6 @@ class MainActivity : AppCompatActivity() {
 
         cfAllowBtn.setOnClickListener {
             pendingCfDomain?.let { domain ->
-                // setCfBypass survives the upcoming onPageStarted so the reload gets through
                 threadModeClient.setCfBypass(domain)
                 hideCfBanner()
                 webView.reload()
@@ -198,6 +202,12 @@ class MainActivity : AppCompatActivity() {
                 }
                 true
             } else false
+        }
+
+        imgSearchBtn.setOnClickListener {
+            dismissKeyboard()
+            urlInput.clearFocus()
+            searchImages()
         }
 
         openNewTab(HOME_URL)
@@ -232,6 +242,39 @@ class MainActivity : AppCompatActivity() {
     private fun dismissKeyboard() {
         val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
         imm.hideSoftInputFromWindow(urlInput.windowToken, 0)
+    }
+
+    // --- Image search ---
+
+    private fun searchImages() {
+        // Extract a query from the URL bar. If it looks like a URL, pull the
+        // search param out of it; otherwise use the raw text as the query.
+        val raw = urlInput.text.toString().trim()
+        val query = extractSearchQuery(raw).ifEmpty { raw }
+        if (query.isEmpty()) return
+
+        // Image search requires JS — switch to full mode for the active tab
+        val tab = tabManager.getActiveTab() ?: return
+        tab.isFullMode = true
+        threadModeClient.isFullMode = true
+        hideJsBanner()
+        hideCfBanner()
+        syncFullModeUI(true)
+
+        val url = DDG_IMAGE_BASE + Uri.encode(query)
+        loadUrlInActiveTab(url)
+    }
+
+    /**
+     * If [input] is a DuckDuckGo search URL, extract the q= param so the user
+     * gets image results for the same query rather than searching the URL string.
+     * Returns empty string if nothing useful is found.
+     */
+    private fun extractSearchQuery(input: String): String {
+        return try {
+            val uri = Uri.parse(input)
+            uri.getQueryParameter("q") ?: ""
+        } catch (e: Exception) { "" }
     }
 
     // --- Theme color bleed ---
@@ -394,28 +437,28 @@ class MainActivity : AppCompatActivity() {
             val card = LinearLayout(this).apply {
                 orientation = LinearLayout.HORIZONTAL
                 background  = ContextCompat.getDrawable(this@MainActivity, R.drawable.bg_tab_card)
-                setPadding(dp8, dp8, dp8, dp8)
                 layoutParams = LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT, dp80
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
                 ).also { it.bottomMargin = dp8 }
+                setPadding(dp8, dp8, dp8, dp8)
             }
 
             val thumb = ImageView(this).apply {
-                layoutParams = LinearLayout.LayoutParams(dp64, LinearLayout.LayoutParams.MATCH_PARENT)
+                layoutParams = LinearLayout.LayoutParams(dp80, dp64).also { it.marginEnd = dp8 }
                 scaleType    = ImageView.ScaleType.CENTER_CROP
                 setImageBitmap(tab.thumbnail)
-                background   = ContextCompat.getDrawable(this@MainActivity, R.drawable.bg_tab_pill)
+                background = ContextCompat.getDrawable(this@MainActivity, R.drawable.bg_tab_pill)
             }
 
             val textCol = LinearLayout(this).apply {
                 orientation  = LinearLayout.VERTICAL
-                gravity      = Gravity.CENTER_VERTICAL
                 layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-                    .also { it.marginStart = dp8 }
+                gravity      = Gravity.CENTER_VERTICAL
             }
 
             val titleView = TextView(this).apply {
-                text     = tab.title.let { if (it.length > 28) it.take(26) + "…" else it }
+                text     = tab.title.let { if (it.length > 30) it.take(28) + "…" else it }
                 typeface = Typeface.MONOSPACE
                 setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f)
                 setTextColor(ContextCompat.getColor(this@MainActivity,
@@ -423,7 +466,7 @@ class MainActivity : AppCompatActivity() {
             }
 
             val domainView = TextView(this).apply {
-                text = try { Uri.parse(tab.url).host ?: tab.url } catch (e: Exception) { tab.url }
+                text     = try { Uri.parse(tab.url).host ?: tab.url } catch (e: Exception) { tab.url }
                 typeface = Typeface.MONOSPACE
                 setTextSize(TypedValue.COMPLEX_UNIT_SP, 9f)
                 setTextColor(ContextCompat.getColor(this@MainActivity, R.color.text_dim))
@@ -433,10 +476,10 @@ class MainActivity : AppCompatActivity() {
             textCol.addView(domainView)
 
             val closeBtn = TextView(this).apply {
-                text     = "×"
+                text     = "✕"
                 typeface = Typeface.MONOSPACE
                 gravity  = Gravity.CENTER
-                setTextSize(TypedValue.COMPLEX_UNIT_SP, 20f)
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
                 setTextColor(ContextCompat.getColor(this@MainActivity, R.color.text_dim))
                 layoutParams = LinearLayout.LayoutParams(dp32, LinearLayout.LayoutParams.MATCH_PARENT)
                 setOnClickListener { closeTabFromOverlay(tab.id) }
@@ -506,9 +549,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showCfBanner(domain: String) {
-        pendingCfDomain      = domain
-        cfBannerDomain.text  = domain
-        cfBanner.visibility  = View.VISIBLE
+        pendingCfDomain     = domain
+        cfBannerDomain.text = domain
+        cfBanner.visibility = View.VISIBLE
     }
 
     private fun hideCfBanner() {
