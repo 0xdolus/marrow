@@ -289,7 +289,7 @@
                 android:layout_weight="1"
                 android:layout_marginStart="6dp"
                 android:hint="@string/url_hint"
-                android:hintTextColor="#555"
+                android:textColorHint="#555"
                 android:textColor="#c8bfaf"
                 android:textSize="12sp"
                 android:paddingStart="14dp"
@@ -359,3 +359,4 @@
         android:visibility="gone" />
 
 </LinearLayout>
+
