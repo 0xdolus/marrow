@@ -40,6 +40,11 @@ class MainActivity : AppCompatActivity() {
     private lateinit var jsAllowOnceBtn: Button
     private lateinit var jsKeepOffBtn: Button
 
+    private lateinit var cfBanner: View
+    private lateinit var cfBannerDomain: TextView
+    private lateinit var cfAllowBtn: Button
+    private lateinit var cfDismissBtn: Button
+
     private lateinit var tabStripInner: LinearLayout
     private lateinit var tabCountBtn: TextView
     private lateinit var tabOverlay: FrameLayout
@@ -56,6 +61,7 @@ class MainActivity : AppCompatActivity() {
 
     private val tabManager = TabManager()
     private var pendingJsDomain: String? = null
+    private var pendingCfDomain: String? = null
 
     companion object {
         const val HOME_URL        = "https://text.npr.org"
@@ -76,6 +82,10 @@ class MainActivity : AppCompatActivity() {
         jsAllowAlwaysBtn = findViewById(R.id.jsAllowAlwaysBtn)
         jsAllowOnceBtn   = findViewById(R.id.jsAllowOnceBtn)
         jsKeepOffBtn     = findViewById(R.id.jsKeepOffBtn)
+        cfBanner         = findViewById(R.id.cfBanner)
+        cfBannerDomain   = findViewById(R.id.cfBannerDomain)
+        cfAllowBtn       = findViewById(R.id.cfAllowBtn)
+        cfDismissBtn     = findViewById(R.id.cfDismissBtn)
         tabStripInner    = findViewById(R.id.tabStripInner)
         tabCountBtn      = findViewById(R.id.tabCountBtn)
         tabOverlay       = findViewById(R.id.tabOverlay)
@@ -100,6 +110,11 @@ class MainActivity : AppCompatActivity() {
             readThemeColor()
         }
 
+        threadModeClient.onCloudflareDetected = { domain ->
+            hideJsBanner()
+            showCfBanner(domain)
+        }
+
         val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val saved = prefs.getStringSet(PREFS_JS_ALWAYS, emptySet()) ?: emptySet()
         threadModeClient.loadAllowedAlways(saved)
@@ -116,14 +131,15 @@ class MainActivity : AppCompatActivity() {
 
         memoryMonitor = MemoryMonitor(this) { level -> updatePip(level) }
 
+        // --- Button listeners ---
+
         fullPageBtn.setOnClickListener {
             val tab = tabManager.getActiveTab() ?: return@setOnClickListener
             tab.isFullMode = !tab.isFullMode
             threadModeClient.isFullMode = tab.isFullMode
             hideJsBanner()
+            hideCfBanner()
             syncFullModeUI(tab.isFullMode)
-            // Clear cache when returning to thread mode so JS can't be served from cache
-            // and shouldInterceptRequest fires correctly on reload
             if (!tab.isFullMode) webView.clearCache(true)
             webView.reload()
         }
@@ -152,6 +168,20 @@ class MainActivity : AppCompatActivity() {
         jsKeepOffBtn.setOnClickListener {
             threadModeClient.blockAllJsForPage()
             hideJsBanner()
+        }
+
+        cfAllowBtn.setOnClickListener {
+            pendingCfDomain?.let { domain ->
+                // setCfBypass survives the upcoming onPageStarted so the reload gets through
+                threadModeClient.setCfBypass(domain)
+                hideCfBanner()
+                webView.reload()
+            }
+        }
+
+        cfDismissBtn.setOnClickListener {
+            // User accepts being blocked — page stays stuck, no reload
+            hideCfBanner()
         }
 
         tabCountBtn.setOnClickListener { toggleTabOverlay() }
@@ -258,6 +288,7 @@ class MainActivity : AppCompatActivity() {
         threadModeClient.isFullMode = false
         syncFullModeUI(false)
         hideJsBanner()
+        hideCfBanner()
         suspendedOverlay.visibility = View.GONE
         tabOverlay.visibility       = View.GONE
 
@@ -282,6 +313,7 @@ class MainActivity : AppCompatActivity() {
         threadModeClient.isFullMode = target.isFullMode
         syncFullModeUI(target.isFullMode)
         hideJsBanner()
+        hideCfBanner()
 
         renderTabStrip()
         webView.loadUrl(target.url)
@@ -440,6 +472,7 @@ class MainActivity : AppCompatActivity() {
             suspendedThumb.setImageBitmap(newActive.thumbnail)
             suspendedOverlay.visibility = View.VISIBLE
             hideJsBanner()
+            hideCfBanner()
             renderTabStrip()
             webView.loadUrl(newActive.url)
             return
@@ -470,6 +503,17 @@ class MainActivity : AppCompatActivity() {
     private fun hideJsBanner() {
         pendingJsDomain     = null
         jsBanner.visibility = View.GONE
+    }
+
+    private fun showCfBanner(domain: String) {
+        pendingCfDomain      = domain
+        cfBannerDomain.text  = domain
+        cfBanner.visibility  = View.VISIBLE
+    }
+
+    private fun hideCfBanner() {
+        pendingCfDomain     = null
+        cfBanner.visibility = View.GONE
     }
 
     @Deprecated("Deprecated in Java")

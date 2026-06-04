@@ -13,4 +13,8 @@
     <string name="tab_limit_toast">Tab limit reached. Oldest tab closed.</string>
     <string name="tab_resuming">Resuming tab…</string>
     <string name="url_hint">Enter address or search</string>
+    <string name="cf_title">Cloudflare security check</string>
+    <string name="cf_message">This site requires scripts to pass Cloudflare\'s security check.</string>
+    <string name="cf_allow">Allow scripts</string>
+    <string name="cf_dismiss">Stay blocked</string>
 </resources>

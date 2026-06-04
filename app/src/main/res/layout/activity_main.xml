@@ -6,7 +6,6 @@
     android:orientation="vertical"
     android:background="@color/bg">
 
-    <!-- WebView area with overlays -->
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
@@ -17,7 +16,6 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent" />
 
-        <!-- Slim loading bar at the bottom edge of the WebView area -->
         <ProgressBar
             android:id="@+id/loadingBar"
             style="?android:attr/progressBarStyleHorizontal"
@@ -29,7 +27,6 @@
             android:progressBackgroundTint="@color/bg"
             android:visibility="gone" />
 
-        <!-- Suspended overlay — dimmed thumbnail + spinner while a tab reloads -->
         <FrameLayout
             android:id="@+id/suspendedOverlay"
             android:layout_width="match_parent"
@@ -69,7 +66,6 @@
 
         </FrameLayout>
 
-        <!-- Thread mode badge — top-left -->
         <TextView
             android:id="@+id/threadBadge"
             android:layout_width="wrap_content"
@@ -166,7 +162,76 @@
 
         </LinearLayout>
 
-        <!-- Full page toggle button — bottom-center -->
+        <!--
+            Cloudflare challenge banner — shown when "Just a moment..." is detected.
+            Separate from the JS banner: different message, only 2 buttons, no reload on dismiss.
+        -->
+        <LinearLayout
+            android:id="@+id/cfBanner"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="top"
+            android:layout_marginStart="10dp"
+            android:layout_marginEnd="10dp"
+            android:layout_marginTop="44dp"
+            android:orientation="vertical"
+            android:background="@drawable/bg_js_banner"
+            android:padding="12dp"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/cfBannerDomain"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/accent_blue"
+                android:textSize="11sp"
+                android:fontFamily="monospace"
+                android:layout_marginBottom="2dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/cf_message"
+                android:textColor="@color/text_dim"
+                android:textSize="11sp"
+                android:fontFamily="monospace"
+                android:layout_marginBottom="10dp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:weightSum="2">
+
+                <Button
+                    android:id="@+id/cfAllowBtn"
+                    android:layout_width="0dp"
+                    android:layout_height="30dp"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="4dp"
+                    android:text="@string/cf_allow"
+                    android:textColor="@color/accent_green"
+                    android:textSize="9sp"
+                    android:fontFamily="monospace"
+                    android:background="@drawable/bg_js_btn"
+                    android:stateListAnimator="@null" />
+
+                <Button
+                    android:id="@+id/cfDismissBtn"
+                    android:layout_width="0dp"
+                    android:layout_height="30dp"
+                    android:layout_weight="1"
+                    android:text="@string/cf_dismiss"
+                    android:textColor="#9a6a6a"
+                    android:textSize="9sp"
+                    android:fontFamily="monospace"
+                    android:background="@drawable/bg_js_btn"
+                    android:stateListAnimator="@null" />
+
+            </LinearLayout>
+
+        </LinearLayout>
+
         <Button
             android:id="@+id/fullPageBtn"
             android:layout_width="wrap_content"
@@ -182,7 +247,6 @@
             android:background="@drawable/bg_full_btn"
             android:stateListAnimator="@null" />
 
-        <!-- Memory pip — always visible, top-right -->
         <View
             android:id="@+id/pipDot"
             android:layout_width="8dp"
@@ -191,10 +255,6 @@
             android:layout_margin="14dp"
             android:background="@drawable/bg_pip" />
 
-        <!--
-            Tab list overlay — shown when user taps the tab count button.
-            Covers the WebView area; bottom chrome stays visible below.
-        -->
         <FrameLayout
             android:id="@+id/tabOverlay"
             android:layout_width="match_parent"
@@ -220,7 +280,6 @@
 
     </FrameLayout>
 
-    <!-- Low memory banner — slim strip, only on RED -->
     <TextView
         android:id="@+id/memBanner"
         android:layout_width="match_parent"
@@ -235,7 +294,6 @@
         android:background="#1f0a0a"
         android:visibility="gone" />
 
-    <!-- Bottom chrome — id needed for theme color bleed -->
     <LinearLayout
         android:id="@+id/chromeBg"
         android:layout_width="match_parent"
@@ -247,7 +305,6 @@
         android:paddingTop="10dp"
         android:paddingBottom="20dp">
 
-        <!-- Tab strip -->
         <HorizontalScrollView
             android:layout_width="match_parent"
             android:layout_height="30dp"
@@ -263,13 +320,11 @@
 
         </HorizontalScrollView>
 
-        <!-- URL row: tab count button + editable address bar -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="40dp"
             android:orientation="horizontal">
 
-            <!-- Tab count pill — tapping opens/closes the tab overlay -->
             <TextView
                 android:id="@+id/tabCountBtn"
                 android:layout_width="40dp"
@@ -282,7 +337,6 @@
                 android:background="@drawable/bg_tab_pill_active"
                 android:layout_marginEnd="8dp" />
 
-            <!-- Editable address bar -->
             <EditText
                 android:id="@+id/urlInput"
                 android:layout_width="0dp"
