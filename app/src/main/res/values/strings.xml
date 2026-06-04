@@ -1,21 +1,15 @@
-<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Marrow</string>
-    <string name="loading">loading…</string>
     <string name="thread_mode">Thread mode</string>
-    <string name="full_page">Full page</string>
-    <string name="thread_mode_short">← Text only</string>
-    <string name="js_wants_scripts">This page wants to run scripts.</string>
-    <string name="js_allow_always">Allow always</string>
+    <string name="full_mode">Go To Full Site</string>
+    <string name="js_allow">Allow scripts</string>
     <string name="js_allow_once">Allow once</string>
     <string name="js_keep_off">Keep off</string>
-    <string name="low_memory">Low memory — oldest tab suspended.</string>
-    <string name="tab_limit_toast">Tab limit reached. Oldest tab closed.</string>
-    <string name="tab_resuming">Resuming tab…</string>
-    <string name="url_hint">Enter address or search</string>
-    <string name="cf_title">Cloudflare security check</string>
-    <string name="cf_message">This site requires scripts to pass Cloudflare\'s security check.</string>
+    <string name="url_hint">search or enter url</string>
+    <string name="img_search">pix</string>
+    <string name="cf_title">Cloudflare detected</string>
+    <string name="cf_message">This site requires JavaScript to pass a challenge.</string>
     <string name="cf_allow">Allow scripts</string>
     <string name="cf_dismiss">Stay blocked</string>
-    <string name="img_search">img</string>
+    <string name="exit_split">✕ split</string>
 </resources>

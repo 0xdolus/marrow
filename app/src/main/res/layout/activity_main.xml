@@ -1,385 +1,361 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/chromeBg"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="@color/bg">
+    android:background="#0f0f0f">
 
-    <FrameLayout
+    <!-- MAIN CONTENT AREA -->
+    <LinearLayout
+        android:id="@+id/contentArea"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1">
+        android:layout_weight="1"
+        android:orientation="vertical">
 
-        <WebView
-            android:id="@+id/webView"
+        <!-- TOP PANE (always visible) -->
+        <LinearLayout
+            android:id="@+id/topPaneContainer"
             android:layout_width="match_parent"
-            android:layout_height="match_parent" />
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
 
+            <!-- Thread mode badge row -->
+            <LinearLayout
+                android:id="@+id/topModeRow"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:padding="6dp"
+                android:gravity="center_vertical"
+                android:background="#0f0f0f">
+
+                <TextView
+                    android:id="@+id/threadBadge"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/thread_mode"
+                    android:textColor="#0f0f0f"
+                    android:textSize="11sp"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="8dp"
+                    android:paddingTop="3dp"
+                    android:paddingBottom="3dp"
+                    android:background="@drawable/bg_thread_badge" />
+
+                <TextView
+                    android:id="@+id/fullBtn"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/full_mode"
+                    android:textColor="#f0ead6"
+                    android:textSize="11sp"
+                    android:paddingStart="10dp"
+                    android:paddingEnd="10dp"
+                    android:paddingTop="3dp"
+                    android:paddingBottom="3dp"
+                    android:layout_marginStart="8dp"
+                    android:background="@drawable/bg_full_btn" />
+
+                <View android:layout_width="0dp"
+                    android:layout_height="1dp"
+                    android:layout_weight="1" />
+
+                <TextView
+                    android:id="@+id/pipDot"
+                    android:layout_width="10dp"
+                    android:layout_height="10dp"
+                    android:background="@drawable/bg_pip"
+                    android:layout_marginEnd="4dp" />
+
+            </LinearLayout>
+
+            <!-- JS banner -->
+            <LinearLayout
+                android:id="@+id/jsBanner"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="8dp"
+                android:visibility="gone"
+                android:background="@drawable/bg_js_banner">
+
+                <TextView
+                    android:id="@+id/jsBannerDomain"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textColor="#f0ead6"
+                    android:textSize="12sp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginTop="6dp">
+
+                    <TextView
+                        android:id="@+id/jsAllowBtn"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/js_allow"
+                        android:textColor="#f0ead6"
+                        android:textSize="11sp"
+                        android:gravity="center"
+                        android:padding="6dp"
+                        android:background="@drawable/bg_js_btn" />
+
+                    <TextView
+                        android:id="@+id/jsAllowOnceBtn"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/js_allow_once"
+                        android:textColor="#f0ead6"
+                        android:textSize="11sp"
+                        android:gravity="center"
+                        android:padding="6dp"
+                        android:layout_marginStart="4dp"
+                        android:background="@drawable/bg_js_btn" />
+
+                    <TextView
+                        android:id="@+id/jsKeepOffBtn"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/js_keep_off"
+                        android:textColor="#f0ead6"
+                        android:textSize="11sp"
+                        android:gravity="center"
+                        android:padding="6dp"
+                        android:layout_marginStart="4dp"
+                        android:background="@drawable/bg_js_btn" />
+
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- CF banner -->
+            <LinearLayout
+                android:id="@+id/cfBanner"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="8dp"
+                android:visibility="gone"
+                android:background="@drawable/bg_js_banner">
+
+                <TextView
+                    android:id="@+id/cfBannerDomain"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textColor="#f0ead6"
+                    android:textSize="12sp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginTop="6dp">
+
+                    <TextView
+                        android:id="@+id/cfAllowBtn"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/cf_allow"
+                        android:textColor="#f0ead6"
+                        android:textSize="11sp"
+                        android:gravity="center"
+                        android:padding="6dp"
+                        android:background="@drawable/bg_js_btn" />
+
+                    <TextView
+                        android:id="@+id/cfDismissBtn"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/cf_dismiss"
+                        android:textColor="#f0ead6"
+                        android:textSize="11sp"
+                        android:gravity="center"
+                        android:padding="6dp"
+                        android:layout_marginStart="4dp"
+                        android:background="@drawable/bg_js_btn" />
+
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Memory banner -->
+            <TextView
+                android:id="@+id/memBanner"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="#f0ead6"
+                android:textSize="11sp"
+                android:padding="4dp"
+                android:background="#8b0000"
+                android:visibility="gone" />
+
+            <!-- Top WebView -->
+            <WebView
+                android:id="@+id/webView"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
+
+        </LinearLayout>
+
+        <!-- SPLIT DIVIDER (hidden by default) -->
+        <View
+            android:id="@+id/splitDivider"
+            android:layout_width="match_parent"
+            android:layout_height="3dp"
+            android:background="#5a9a5a"
+            android:visibility="gone" />
+
+        <!-- BOTTOM PANE (hidden by default) -->
+        <WebView
+            android:id="@+id/splitWebView"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:visibility="gone" />
+
+    </LinearLayout>
+
+    <!-- BOTTOM CHROME -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp"
+        android:paddingBottom="8dp"
+        android:paddingTop="4dp">
+
+        <!-- Loading bar -->
         <ProgressBar
             android:id="@+id/loadingBar"
             style="?android:attr/progressBarStyleHorizontal"
             android:layout_width="match_parent"
             android:layout_height="3dp"
-            android:layout_gravity="bottom"
-            android:max="100"
-            android:progressTint="@color/accent_green"
-            android:progressBackgroundTint="@color/bg"
-            android:visibility="gone" />
-
-        <FrameLayout
-            android:id="@+id/suspendedOverlay"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:background="@color/bg"
-            android:visibility="gone">
-
-            <ImageView
-                android:id="@+id/suspendedThumb"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:scaleType="centerCrop"
-                android:alpha="0.25" />
-
-            <LinearLayout
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:orientation="vertical"
-                android:gravity="center">
-
-                <ProgressBar
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
-                    android:indeterminateTint="@color/text_dim" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/tab_resuming"
-                    android:textColor="@color/text_dim"
-                    android:textSize="11sp"
-                    android:fontFamily="monospace"
-                    android:layout_marginTop="10dp" />
-
-            </LinearLayout>
-
-        </FrameLayout>
-
-        <!-- Thread mode badge — top-left -->
-        <TextView
-            android:id="@+id/threadBadge"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="top|start"
-            android:layout_margin="10dp"
-            android:text="@string/thread_mode"
-            android:textColor="@color/accent_green"
-            android:textSize="10sp"
-            android:fontFamily="monospace"
-            android:paddingStart="8dp"
-            android:paddingEnd="8dp"
-            android:paddingTop="4dp"
-            android:paddingBottom="4dp"
-            android:background="@drawable/bg_thread_badge" />
-
-        <!-- JS permission banner -->
-        <LinearLayout
-            android:id="@+id/jsBanner"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_gravity="top"
-            android:layout_marginStart="10dp"
-            android:layout_marginEnd="10dp"
-            android:layout_marginTop="44dp"
-            android:orientation="vertical"
-            android:background="@drawable/bg_js_banner"
-            android:padding="12dp"
-            android:visibility="gone">
-
-            <TextView
-                android:id="@+id/jsBannerDomain"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textColor="@color/accent_blue"
-                android:textSize="11sp"
-                android:fontFamily="monospace"
-                android:layout_marginBottom="2dp" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/js_wants_scripts"
-                android:textColor="@color/text_dim"
-                android:textSize="11sp"
-                android:fontFamily="monospace"
-                android:layout_marginBottom="10dp" />
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:weightSum="3">
-
-                <Button
-                    android:id="@+id/jsAllowAlwaysBtn"
-                    android:layout_width="0dp"
-                    android:layout_height="30dp"
-                    android:layout_weight="1"
-                    android:layout_marginEnd="4dp"
-                    android:text="@string/js_allow_always"
-                    android:textColor="@color/accent_green"
-                    android:textSize="9sp"
-                    android:fontFamily="monospace"
-                    android:background="@drawable/bg_js_btn"
-                    android:stateListAnimator="@null" />
-
-                <Button
-                    android:id="@+id/jsAllowOnceBtn"
-                    android:layout_width="0dp"
-                    android:layout_height="30dp"
-                    android:layout_weight="1"
-                    android:layout_marginEnd="4dp"
-                    android:text="@string/js_allow_once"
-                    android:textColor="@color/text_muted"
-                    android:textSize="9sp"
-                    android:fontFamily="monospace"
-                    android:background="@drawable/bg_js_btn"
-                    android:stateListAnimator="@null" />
-
-                <Button
-                    android:id="@+id/jsKeepOffBtn"
-                    android:layout_width="0dp"
-                    android:layout_height="30dp"
-                    android:layout_weight="1"
-                    android:text="@string/js_keep_off"
-                    android:textColor="#9a6a6a"
-                    android:textSize="9sp"
-                    android:fontFamily="monospace"
-                    android:background="@drawable/bg_js_btn"
-                    android:stateListAnimator="@null" />
-
-            </LinearLayout>
-
-        </LinearLayout>
-
-        <!-- Cloudflare challenge banner -->
-        <LinearLayout
-            android:id="@+id/cfBanner"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_gravity="top"
-            android:layout_marginStart="10dp"
-            android:layout_marginEnd="10dp"
-            android:layout_marginTop="44dp"
-            android:orientation="vertical"
-            android:background="@drawable/bg_js_banner"
-            android:padding="12dp"
-            android:visibility="gone">
-
-            <TextView
-                android:id="@+id/cfBannerDomain"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textColor="@color/accent_blue"
-                android:textSize="11sp"
-                android:fontFamily="monospace"
-                android:layout_marginBottom="2dp" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/cf_message"
-                android:textColor="@color/text_dim"
-                android:textSize="11sp"
-                android:fontFamily="monospace"
-                android:layout_marginBottom="10dp" />
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:weightSum="2">
-
-                <Button
-                    android:id="@+id/cfAllowBtn"
-                    android:layout_width="0dp"
-                    android:layout_height="30dp"
-                    android:layout_weight="1"
-                    android:layout_marginEnd="4dp"
-                    android:text="@string/cf_allow"
-                    android:textColor="@color/accent_green"
-                    android:textSize="9sp"
-                    android:fontFamily="monospace"
-                    android:background="@drawable/bg_js_btn"
-                    android:stateListAnimator="@null" />
-
-                <Button
-                    android:id="@+id/cfDismissBtn"
-                    android:layout_width="0dp"
-                    android:layout_height="30dp"
-                    android:layout_weight="1"
-                    android:text="@string/cf_dismiss"
-                    android:textColor="#9a6a6a"
-                    android:textSize="9sp"
-                    android:fontFamily="monospace"
-                    android:background="@drawable/bg_js_btn"
-                    android:stateListAnimator="@null" />
-
-            </LinearLayout>
-
-        </LinearLayout>
-
-        <!-- Full page toggle button — bottom-center -->
-        <Button
-            android:id="@+id/fullPageBtn"
-            android:layout_width="wrap_content"
-            android:layout_height="36dp"
-            android:layout_gravity="bottom|center_horizontal"
-            android:layout_marginBottom="10dp"
-            android:text="@string/full_page"
-            android:textColor="@color/text_muted"
-            android:textSize="11sp"
-            android:fontFamily="monospace"
-            android:paddingStart="16dp"
-            android:paddingEnd="16dp"
-            android:background="@drawable/bg_full_btn"
-            android:stateListAnimator="@null" />
-
-        <!-- Memory pip — always visible, top-right -->
-        <View
-            android:id="@+id/pipDot"
-            android:layout_width="8dp"
-            android:layout_height="8dp"
-            android:layout_gravity="top|end"
-            android:layout_margin="14dp"
-            android:background="@drawable/bg_pip" />
-
-        <!-- Tab list overlay — shown when user taps the tab count button -->
-        <FrameLayout
-            android:id="@+id/tabOverlay"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:background="#EE0f0f0f"
-            android:visibility="gone">
-
-            <ScrollView
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:padding="12dp"
-                android:scrollbars="none">
-
-                <LinearLayout
-                    android:id="@+id/tabCardList"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical" />
-
-            </ScrollView>
-
-        </FrameLayout>
-
-    </FrameLayout>
-
-    <!-- Low memory banner — slim strip, only on RED -->
-    <TextView
-        android:id="@+id/memBanner"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="@string/low_memory"
-        android:textColor="@color/mem_red"
-        android:textSize="10sp"
-        android:fontFamily="monospace"
-        android:gravity="center"
-        android:paddingTop="5dp"
-        android:paddingBottom="5dp"
-        android:background="#1f0a0a"
-        android:visibility="gone" />
-
-    <!-- Bottom chrome — id needed for theme color bleed -->
-    <LinearLayout
-        android:id="@+id/chromeBg"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:background="@color/chrome_bg"
-        android:paddingStart="12dp"
-        android:paddingEnd="12dp"
-        android:paddingTop="10dp"
-        android:paddingBottom="20dp">
+            android:progressTint="#8ab8d8"
+            android:progressBackgroundTint="#1f1f1f"
+            android:visibility="invisible" />
 
         <!-- Tab strip -->
         <HorizontalScrollView
             android:layout_width="match_parent"
-            android:layout_height="30dp"
+            android:layout_height="wrap_content"
             android:scrollbars="none"
-            android:layout_marginBottom="8dp">
+            android:layout_marginTop="4dp">
 
             <LinearLayout
                 android:id="@+id/tabStripInner"
                 android:layout_width="wrap_content"
-                android:layout_height="match_parent"
+                android:layout_height="wrap_content"
                 android:orientation="horizontal"
                 android:gravity="center_vertical" />
 
         </HorizontalScrollView>
 
-        <!-- URL row: tab count + address bar + image search button -->
+        <!-- URL row -->
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="40dp"
-            android:orientation="horizontal">
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginTop="4dp">
 
-            <!-- Tab count pill -->
             <TextView
                 android:id="@+id/tabCountBtn"
-                android:layout_width="40dp"
-                android:layout_height="match_parent"
-                android:gravity="center"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
                 android:text="1"
-                android:textColor="@color/accent_green"
-                android:textSize="11sp"
-                android:fontFamily="monospace"
-                android:background="@drawable/bg_tab_pill_active"
-                android:layout_marginEnd="8dp" />
+                android:textColor="#0f0f0f"
+                android:textSize="13sp"
+                android:paddingStart="10dp"
+                android:paddingEnd="10dp"
+                android:paddingTop="6dp"
+                android:paddingBottom="6dp"
+                android:background="@drawable/bg_tab_pill_active" />
 
-            <!-- Editable address bar -->
             <EditText
                 android:id="@+id/urlInput"
                 android:layout_width="0dp"
-                android:layout_height="match_parent"
+                android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:gravity="center_vertical"
-                android:paddingStart="12dp"
-                android:paddingEnd="12dp"
+                android:layout_marginStart="6dp"
                 android:hint="@string/url_hint"
-                android:textColorHint="@color/text_dim"
-                android:textColor="@color/text_muted"
+                android:hintTextColor="#555"
+                android:textColor="#c8bfaf"
                 android:textSize="12sp"
-                android:fontFamily="monospace"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                android:paddingTop="7dp"
+                android:paddingBottom="7dp"
                 android:background="@drawable/bg_url_bar"
-                android:inputType="textUri|textNoSuggestions"
                 android:imeOptions="actionGo"
-                android:selectAllOnFocus="true"
-                android:textCursorDrawable="@null"
-                android:ellipsize="end"
-                android:singleLine="true" />
+                android:inputType="textUri"
+                android:maxLines="1"
+                android:selectAllOnFocus="true" />
 
-            <!-- Image search button — opens DDG image search in full mode -->
             <TextView
                 android:id="@+id/imgSearchBtn"
                 android:layout_width="40dp"
-                android:layout_height="match_parent"
-                android:gravity="center"
+                android:layout_height="wrap_content"
                 android:text="@string/img_search"
-                android:textColor="@color/text_dim"
-                android:textSize="10sp"
-                android:fontFamily="monospace"
-                android:background="@drawable/bg_tab_pill"
-                android:layout_marginStart="8dp" />
+                android:textColor="#c8bfaf"
+                android:textSize="11sp"
+                android:gravity="center"
+                android:paddingTop="6dp"
+                android:paddingBottom="6dp"
+                android:layout_marginStart="6dp"
+                android:background="@drawable/bg_tab_pill" />
+
+            <!-- Split button -->
+            <TextView
+                android:id="@+id/splitBtn"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="⊟"
+                android:textColor="#c8bfaf"
+                android:textSize="16sp"
+                android:gravity="center"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:paddingTop="6dp"
+                android:paddingBottom="6dp"
+                android:layout_marginStart="6dp"
+                android:background="@drawable/bg_tab_pill" />
 
         </LinearLayout>
 
+        <!-- Exit split row (hidden by default) -->
+        <TextView
+            android:id="@+id/exitSplitBtn"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/exit_split"
+            android:textColor="#c8bfaf"
+            android:textSize="11sp"
+            android:gravity="center"
+            android:paddingTop="5dp"
+            android:paddingBottom="5dp"
+            android:layout_marginTop="4dp"
+            android:background="@drawable/bg_tab_pill"
+            android:visibility="gone" />
+
     </LinearLayout>
+
+    <!-- Tab overlay -->
+    <FrameLayout
+        android:id="@+id/tabOverlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#0f0f0f"
+        android:visibility="gone" />
 
 </LinearLayout>
