@@ -11,5 +11,6 @@
     <string name="cf_message">This site requires JavaScript to pass a challenge.</string>
     <string name="cf_allow">Allow scripts</string>
     <string name="cf_dismiss">Stay blocked</string>
+    <string name="mem_warning">Low memory — consider closing tabs</string> 
     <string name="exit_split">✕ split</string>
 </resources>

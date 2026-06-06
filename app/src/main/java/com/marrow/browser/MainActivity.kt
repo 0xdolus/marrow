@@ -1,6 +1,5 @@
 package com.marrow.browser
 
-import android.app.ActivityManager
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Color
@@ -128,7 +127,7 @@ class MainActivity : AppCompatActivity() {
     // ════════════════════════════════════════════════════════════
     private fun setupTabManager() {
         tabManager = TabManager()
-        val result = tabManager.openTab("DuckDuckGo", "https://html.duckduckgo.com/html/")
+        tabManager.openTab("https://html.duckduckgo.com/html/")
         renderTabStrip()
     }
 
@@ -136,21 +135,20 @@ class MainActivity : AppCompatActivity() {
     // Memory monitor
     // ════════════════════════════════════════════════════════════
     private fun setupMemoryMonitor() {
-        val am = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
-        memoryMonitor = MemoryMonitor(am) { level, message ->
-            runOnUiThread { updatePip(level, message) }
+        memoryMonitor = MemoryMonitor(this) { level ->
+            runOnUiThread { updatePip(level) }
         }
     }
 
-    private fun updatePip(level: Int, message: String) {
+    private fun updatePip(level: MemoryMonitor.Level) {
         val color = when (level) {
-            MemoryMonitor.LEVEL_GREEN  -> "#5a9a5a"
-            MemoryMonitor.LEVEL_YELLOW -> "#c8a840"
-            else                       -> "#c0392b"
+            MemoryMonitor.Level.GREEN  -> "#5a9a5a"
+            MemoryMonitor.Level.YELLOW -> "#c8a840"
+            MemoryMonitor.Level.RED    -> "#c0392b"
         }
         pipDot.background.setTint(Color.parseColor(color))
-        if (level == MemoryMonitor.LEVEL_RED) {
-            memBanner.text = message
+        if (level == MemoryMonitor.Level.RED) {
+            memBanner.text = getString(R.string.mem_warning)
             memBanner.visibility = View.VISIBLE
         } else {
             memBanner.visibility = View.GONE
@@ -165,16 +163,22 @@ class MainActivity : AppCompatActivity() {
     // ════════════════════════════════════════════════════════════
     private fun setupMainWebView() {
         threadClient = ThreadModeClient(
-            onJsRequested = { domain -> runOnUiThread { showJsBanner(domain) } },
-            onPageLoaded  = { url, title -> runOnUiThread {
+            onJsRequested = { domain -> runOnUiThread { showJsBanner(domain) } }
+        )
+
+        threadClient.onPageLoaded = { url ->
+            runOnUiThread {
                 urlInput.setText(url)
-                tabManager.updateActiveTitle(title ?: "")
+                tabManager.updateActiveTitle(webView.title ?: "")
                 tabManager.updateActiveUrl(url)
                 renderTabStrip()
                 readThemeColor()
-            }},
-            onCloudflareDetected = { domain -> runOnUiThread { showCfBanner(domain) } }
-        )
+            }
+        }
+
+        threadClient.onCloudflareDetected = { domain ->
+            runOnUiThread { showCfBanner(domain) }
+        }
 
         webView.webViewClient = threadClient
         webView.webChromeClient = object : WebChromeClient() {
@@ -234,7 +238,6 @@ class MainActivity : AppCompatActivity() {
         exitSplitBtn.visibility = View.VISIBLE
         splitBtn.visibility     = View.GONE
 
-        // Give both panes equal weight
         val topParams = topPaneContainer.layoutParams as LinearLayout.LayoutParams
         topParams.weight = 1f
         topPaneContainer.layoutParams = topParams
@@ -265,7 +268,7 @@ class MainActivity : AppCompatActivity() {
         splitPaneActive = bottom
 
         if (!isSplitMode) {
-            urlInput.setText(tabManager.activeTab()?.url ?: "")
+            urlInput.setText(tabManager.getActiveTab()?.url ?: "")
             return
         }
 
@@ -273,7 +276,7 @@ class MainActivity : AppCompatActivity() {
             urlInput.setText(splitWebView.url ?: "")
             splitDivider.setBackgroundColor(Color.parseColor("#8ab8d8"))
         } else {
-            urlInput.setText(tabManager.activeTab()?.url ?: "")
+            urlInput.setText(tabManager.getActiveTab()?.url ?: "")
             splitDivider.setBackgroundColor(Color.parseColor("#5a9a5a"))
         }
     }
@@ -317,7 +320,6 @@ class MainActivity : AppCompatActivity() {
     // ════════════════════════════════════════════════════════════
     private fun setupButtons() {
 
-        // Full / thread toggle
         fullBtn.setOnClickListener {
             isFullMode = !isFullMode
             val target = if (isSplitMode && splitPaneActive) splitWebView else webView
@@ -336,7 +338,6 @@ class MainActivity : AppCompatActivity() {
             target.reload()
         }
 
-        // Tab count → overlay
         tabCountBtn.setOnClickListener {
             if (tabOverlay.visibility == View.VISIBLE) {
                 tabOverlay.visibility = View.GONE
@@ -346,30 +347,29 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        // Image search
         imgSearchBtn.setOnClickListener { searchImages() }
 
-        // Split enter
         splitBtn.setOnClickListener { enterSplitMode() }
 
-        // Split exit
         exitSplitBtn.setOnClickListener { exitSplitMode() }
 
-        // JS banner buttons
         jsAllowBtn.setOnClickListener {
             val domain = jsBannerDomain.text.toString()
-            threadClient.allowDomain(domain)
+            threadClient.allowAlways(domain)
             hideJsBanner()
             webView.reload()
         }
         jsAllowOnceBtn.setOnClickListener {
-            threadClient.allowOnce()
+            val domain = jsBannerDomain.text.toString()
+            threadClient.allowOnce(domain)
             hideJsBanner()
             webView.reload()
         }
-        jsKeepOffBtn.setOnClickListener { hideJsBanner() }
+        jsKeepOffBtn.setOnClickListener {
+            threadClient.blockAllJsForPage()
+            hideJsBanner()
+        }
 
-        // CF banner buttons
         cfAllowBtn.setOnClickListener {
             val domain = pendingCfDomain ?: return@setOnClickListener
             threadClient.setCfBypass(domain)
@@ -457,15 +457,15 @@ class MainActivity : AppCompatActivity() {
     // ════════════════════════════════════════════════════════════
     private fun renderTabStrip() {
         tabStripInner.removeAllViews()
-        tabCountBtn.text = tabManager.count().toString()
+        tabCountBtn.text = tabManager.getTabs().size.toString()
 
-        for (tab in tabManager.tabs) {
+        for (tab in tabManager.getTabs()) {
             val pill = TextView(this).apply {
                 text = tab.title.take(16).ifBlank { "New Tab" }
                 textSize = 11f
                 setTextColor(Color.parseColor("#c8bfaf"))
                 setPadding(24, 12, 24, 12)
-                background = if (tab.id == tabManager.activeId)
+                background = if (tab.id == tabManager.activeTabId)
                     getDrawable(R.drawable.bg_tab_pill_active)
                 else
                     getDrawable(R.drawable.bg_tab_pill)
@@ -502,7 +502,7 @@ class MainActivity : AppCompatActivity() {
             setPadding(16, 16, 16, 16)
         }
 
-        for (tab in tabManager.tabs) {
+        for (tab in tabManager.getTabs()) {
             val card = LinearLayout(this).apply {
                 orientation = LinearLayout.HORIZONTAL
                 background = getDrawable(R.drawable.bg_tab_card)
@@ -555,27 +555,19 @@ class MainActivity : AppCompatActivity() {
     // ════════════════════════════════════════════════════════════
     private fun openNewTab() {
         captureWebView()
-        val result = tabManager.openTab("New Tab", DDG_BASE)
-        when (result) {
-            TabManager.OpenResult.OPENED -> {
-                webView.loadUrl(DDG_BASE)
-                isFullMode = false
-                syncFullModeUI()
-                renderTabStrip()
-                tabOverlay.visibility = View.GONE
-            }
-            TabManager.OpenResult.REPLACED -> {
-                Toast.makeText(this, "Oldest tab closed", Toast.LENGTH_SHORT).show()
-                webView.loadUrl(DDG_BASE)
-                isFullMode = false
-                syncFullModeUI()
-                renderTabStrip()
-                tabOverlay.visibility = View.GONE
-            }
+        val result = tabManager.openTab(DDG_BASE)
+        val replaced = result.oldestClosed
+        if (replaced) {
+            Toast.makeText(this, "Oldest tab closed", Toast.LENGTH_SHORT).show()
         }
+        webView.loadUrl(DDG_BASE)
+        isFullMode = false
+        syncFullModeUI()
+        renderTabStrip()
+        tabOverlay.visibility = View.GONE
     }
 
-    private fun switchToTab(id: String) {
+    private fun switchToTab(id: Int) {
         captureWebView()
         val tab = tabManager.switchToTab(id) ?: return
         webView.loadUrl(tab.url)
@@ -587,7 +579,7 @@ class MainActivity : AppCompatActivity() {
         hideBanners()
     }
 
-    private fun closeTab(id: String) {
+    private fun closeTab(id: Int) {
         val next = tabManager.closeTab(id)
         if (next != null) {
             webView.loadUrl(next.url)
@@ -614,3 +606,4 @@ class MainActivity : AppCompatActivity() {
         webView.settings.blockNetworkImage = !isFullMode
     }
 }
+
