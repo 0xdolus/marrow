@@ -54,7 +54,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var topPaneContainer: LinearLayout
 
     private var isSplitMode = false
-    private var splitPaneActive = false  // false = top pane active, true = bottom pane active
+    private var splitPaneActive = false  // false = top pane, true = bottom pane
 
     // ── Tab + memory ─────────────────────────────────────────────
     private lateinit var tabManager: TabManager
@@ -168,7 +168,7 @@ class MainActivity : AppCompatActivity() {
 
         threadClient.onPageLoaded = { url ->
             runOnUiThread {
-                urlInput.setText(url)
+                if (!splitPaneActive) urlInput.setText(url)
                 tabManager.updateActiveTitle(webView.title ?: "")
                 tabManager.updateActiveUrl(url)
                 renderTabStrip()
@@ -183,14 +183,19 @@ class MainActivity : AppCompatActivity() {
         webView.webViewClient = threadClient
         webView.webChromeClient = object : WebChromeClient() {
             override fun onProgressChanged(view: WebView?, newProgress: Int) {
-                loadingBar.visibility = if (newProgress < 100) View.VISIBLE else View.INVISIBLE
-                loadingBar.progress = newProgress
+                if (!splitPaneActive) {
+                    loadingBar.visibility = if (newProgress < 100) View.VISIBLE else View.INVISIBLE
+                    loadingBar.progress = newProgress
+                }
             }
         }
 
         applyThreadSettings(webView)
 
-        webView.setOnClickListener { setActivePane(false) }
+        webView.setOnTouchListener { _, _ ->
+            if (isSplitMode && splitPaneActive) setActivePane(false)
+            false
+        }
     }
 
     // ════════════════════════════════════════════════════════════
@@ -200,8 +205,15 @@ class MainActivity : AppCompatActivity() {
         applyThreadSettings(splitWebView)
 
         splitWebView.webViewClient = object : WebViewClient() {
-            override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
-                return false
+            override fun shouldOverrideUrlLoading(
+                view: WebView?,
+                request: WebResourceRequest?
+            ): Boolean = false
+
+            override fun onPageFinished(view: WebView?, url: String?) {
+                if (splitPaneActive && url != null) {
+                    runOnUiThread { urlInput.setText(url) }
+                }
             }
         }
 
@@ -214,7 +226,10 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        splitWebView.setOnClickListener { setActivePane(true) }
+        splitWebView.setOnTouchListener { _, _ ->
+            if (isSplitMode && !splitPaneActive) setActivePane(true)
+            false
+        }
     }
 
     private fun applyThreadSettings(wv: WebView) {
@@ -223,6 +238,15 @@ class MainActivity : AppCompatActivity() {
             blockNetworkImage = true
             loadsImagesAutomatically = false
             cacheMode = WebSettings.LOAD_NO_CACHE
+        }
+    }
+
+    private fun applyFullSettings(wv: WebView) {
+        wv.settings.apply {
+            javaScriptEnabled = true
+            blockNetworkImage = false
+            loadsImagesAutomatically = true
+            cacheMode = WebSettings.LOAD_DEFAULT
         }
     }
 
@@ -246,6 +270,12 @@ class MainActivity : AppCompatActivity() {
         bottomParams.weight = 1f
         splitWebView.layoutParams = bottomParams
 
+        // Auto full mode on both panes in split
+        applyFullSettings(webView)
+        applyFullSettings(splitWebView)
+        isFullMode = true
+        syncFullModeUI()
+
         splitWebView.loadUrl(DDG_BASE)
         setActivePane(false)
     }
@@ -260,6 +290,11 @@ class MainActivity : AppCompatActivity() {
         splitDivider.visibility = View.GONE
         exitSplitBtn.visibility = View.GONE
         splitBtn.visibility     = View.VISIBLE
+
+        // Restore thread mode on exit
+        applyThreadSettings(webView)
+        isFullMode = false
+        syncFullModeUI()
 
         setActivePane(false)
     }
@@ -322,16 +357,12 @@ class MainActivity : AppCompatActivity() {
 
         fullBtn.setOnClickListener {
             isFullMode = !isFullMode
-            val target = if (isSplitMode && splitPaneActive) splitWebView else webView
+            val target = activeWebView()
             if (isFullMode) {
-                target.settings.javaScriptEnabled = true
-                target.settings.loadsImagesAutomatically = true
-                target.settings.blockNetworkImage = false
-                fullBtn.text = "Thread mode"
+                applyFullSettings(target)
+                fullBtn.text = getString(R.string.thread_mode)
             } else {
-                target.settings.javaScriptEnabled = false
-                target.settings.loadsImagesAutomatically = false
-                target.settings.blockNetworkImage = true
+                applyThreadSettings(target)
                 target.clearCache(true)
                 fullBtn.text = getString(R.string.full_mode)
             }
@@ -414,12 +445,10 @@ class MainActivity : AppCompatActivity() {
         val current = urlInput.text.toString()
         val query = extractSearchQuery(current).ifBlank { current }
         if (query.isBlank()) return
-        val target = if (isSplitMode && splitPaneActive) splitWebView else webView
-        target.settings.javaScriptEnabled = true
-        target.settings.loadsImagesAutomatically = true
-        target.settings.blockNetworkImage = false
+        val target = activeWebView()
+        applyFullSettings(target)
         isFullMode = true
-        fullBtn.text = "Thread mode"
+        syncFullModeUI()
         navigateTo(DDG_IMAGE_BASE + URLEncoder.encode(query, "UTF-8"), target)
     }
 
@@ -435,16 +464,16 @@ class MainActivity : AppCompatActivity() {
     // ════════════════════════════════════════════════════════════
     private fun readThemeColor() {
         webView.evaluateJavascript(
-            "(function(){ var m = document.querySelector('meta[name=theme-color]'); return m ? m.getAttribute('content') : ''; })()"
+            "(function(){ var m = document.querySelector('meta[name=theme-color]'); " +
+            "return m ? m.getAttribute('content') : ''; })()"
         ) { value ->
             val raw = value?.trim('"') ?: ""
             runOnUiThread {
                 try {
-                    if (raw.startsWith("#")) {
-                        chromeBg.setBackgroundColor(Color.parseColor(raw))
-                    } else {
-                        chromeBg.setBackgroundColor(Color.parseColor("#0f0f0f"))
-                    }
+                    chromeBg.setBackgroundColor(
+                        if (raw.startsWith("#")) Color.parseColor(raw)
+                        else Color.parseColor("#0f0f0f")
+                    )
                 } catch (e: Exception) {
                     chromeBg.setBackgroundColor(Color.parseColor("#0f0f0f"))
                 }
@@ -524,7 +553,9 @@ class MainActivity : AppCompatActivity() {
                 text = tab.title.ifBlank { tab.url }
                 textSize = 12f
                 setTextColor(Color.parseColor("#f0ead6"))
-                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                layoutParams = LinearLayout.LayoutParams(
+                    0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f
+                )
             }
             card.addView(title)
 
@@ -554,26 +585,37 @@ class MainActivity : AppCompatActivity() {
     // Tab actions
     // ════════════════════════════════════════════════════════════
     private fun openNewTab() {
-        captureWebView()
+        captureActivePane()
         val result = tabManager.openTab(DDG_BASE)
-        val replaced = result.oldestClosed
-        if (replaced) {
+        if (result.oldestClosed) {
             Toast.makeText(this, "Oldest tab closed", Toast.LENGTH_SHORT).show()
         }
-        webView.loadUrl(DDG_BASE)
-        isFullMode = false
-        syncFullModeUI()
+        val target = activeWebView()
+        if (isSplitMode) {
+            applyFullSettings(target)
+        } else {
+            applyThreadSettings(target)
+            isFullMode = false
+            syncFullModeUI()
+        }
+        target.loadUrl(DDG_BASE)
         renderTabStrip()
         tabOverlay.visibility = View.GONE
     }
 
     private fun switchToTab(id: Int) {
-        captureWebView()
+        captureActivePane()
         val tab = tabManager.switchToTab(id) ?: return
-        webView.loadUrl(tab.url)
+        val target = activeWebView()
+        if (isSplitMode) {
+            applyFullSettings(target)
+        } else {
+            applyThreadSettings(target)
+            isFullMode = false
+            syncFullModeUI()
+        }
+        target.loadUrl(tab.url)
         urlInput.setText(tab.url)
-        isFullMode = false
-        syncFullModeUI()
         renderTabStrip()
         tabOverlay.visibility = View.GONE
         hideBanners()
@@ -581,29 +623,37 @@ class MainActivity : AppCompatActivity() {
 
     private fun closeTab(id: Int) {
         val next = tabManager.closeTab(id)
+        val target = activeWebView()
         if (next != null) {
-            webView.loadUrl(next.url)
+            target.loadUrl(next.url)
             urlInput.setText(next.url)
         } else {
-            webView.loadUrl(DDG_BASE)
+            target.loadUrl(DDG_BASE)
             urlInput.setText(DDG_BASE)
         }
         renderTabStrip()
         tabOverlay.visibility = View.GONE
     }
 
-    private fun captureWebView() {
-        webView.isDrawingCacheEnabled = true
-        val bmp = Bitmap.createBitmap(webView.drawingCache)
-        webView.isDrawingCacheEnabled = false
+    // ════════════════════════════════════════════════════════════
+    // Helpers
+    // ════════════════════════════════════════════════════════════
+
+    private fun activeWebView(): WebView =
+        if (isSplitMode && splitPaneActive) splitWebView else webView
+
+    private fun captureActivePane() {
+        val wv = activeWebView()
+        wv.isDrawingCacheEnabled = true
+        val bmp = Bitmap.createBitmap(wv.drawingCache)
+        wv.isDrawingCacheEnabled = false
         tabManager.updateActiveThumbnail(bmp)
     }
 
     private fun syncFullModeUI() {
-        fullBtn.text = if (isFullMode) "Thread mode" else getString(R.string.full_mode)
+        fullBtn.text = if (isFullMode) getString(R.string.thread_mode) else getString(R.string.full_mode)
         webView.settings.javaScriptEnabled = isFullMode
         webView.settings.loadsImagesAutomatically = isFullMode
         webView.settings.blockNetworkImage = !isFullMode
     }
 }
-
