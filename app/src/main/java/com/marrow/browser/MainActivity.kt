@@ -19,7 +19,6 @@ import java.net.URLEncoder
 
 class MainActivity : AppCompatActivity() {
 
-    // ── Core views ──────────────────────────────────────────────
     private lateinit var chromeBg: LinearLayout
     private lateinit var webView: WebView
     private lateinit var urlInput: EditText
@@ -32,7 +31,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var imgSearchBtn: TextView
     private lateinit var paneIndicator: View
 
-    // ── Split views ──────────────────────────────────────────────
     private lateinit var splitWebView: WebView
     private lateinit var splitDivider: View
     private lateinit var splitBtn: TextView
@@ -47,31 +45,25 @@ class MainActivity : AppCompatActivity() {
     private var isSplitMode = false
     private var splitPaneActive = false
 
-    // Draggable divider
     private var dividerDragStartY = 0f
     private var topWeightAtDragStart = 1f
     private var bottomWeightAtDragStart = 1f
 
-    // ── Tab + memory ─────────────────────────────────────────────
     private lateinit var tabManager: TabManager
     private lateinit var memoryMonitor: MemoryMonitor
     private lateinit var threadClient: ThreadModeClient
 
     companion object {
-        const val HOME              = "file:///android_asset/home.html"
-        const val DDG_BASE          = "https://html.duckduckgo.com/html/?q="
-        const val DDG_IMAGE_BASE    = "https://duckduckgo.com/?iax=images&ia=images&q="
+        const val HOME           = "file:///android_asset/home.html"
+        const val DDG_BASE       = "https://html.duckduckgo.com/html/?q="
+        const val DDG_IMAGE_BASE = "https://duckduckgo.com/?iax=images&ia=images&q="
         const val COLOR_TOP_PANE    = "#5a9a5a"
         const val COLOR_BOTTOM_PANE = "#8ab8d8"
     }
 
-    // ════════════════════════════════════════════════════════════
-    // onCreate
-    // ════════════════════════════════════════════════════════════
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-
         bindViews()
         setupTabManager()
         setupMemoryMonitor()
@@ -80,13 +72,9 @@ class MainActivity : AppCompatActivity() {
         setupDividerDrag()
         setupUrlBar()
         setupButtons()
-
         navigateTo(HOME, webView)
     }
 
-    // ════════════════════════════════════════════════════════════
-    // View binding
-    // ════════════════════════════════════════════════════════════
     private fun bindViews() {
         chromeBg            = findViewById(R.id.chromeBg)
         webView             = findViewById(R.id.webView)
@@ -99,7 +87,6 @@ class MainActivity : AppCompatActivity() {
         memBanner           = findViewById(R.id.memBanner)
         imgSearchBtn        = findViewById(R.id.imgSearchBtn)
         paneIndicator       = findViewById(R.id.paneIndicator)
-
         splitWebView        = findViewById(R.id.splitWebView)
         splitDivider        = findViewById(R.id.splitDivider)
         splitBtn            = findViewById(R.id.splitBtn)
@@ -112,18 +99,12 @@ class MainActivity : AppCompatActivity() {
         bottomPaneContainer = findViewById(R.id.bottomPaneContainer)
     }
 
-    // ════════════════════════════════════════════════════════════
-    // Tab manager
-    // ════════════════════════════════════════════════════════════
     private fun setupTabManager() {
         tabManager = TabManager()
         tabManager.openTab(HOME)
         renderTabStrip()
     }
 
-    // ════════════════════════════════════════════════════════════
-    // Memory monitor
-    // ════════════════════════════════════════════════════════════
     private fun setupMemoryMonitor() {
         memoryMonitor = MemoryMonitor(this) { level ->
             runOnUiThread { updatePip(level) }
@@ -148,24 +129,18 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() { super.onResume(); memoryMonitor.start() }
     override fun onPause()  { super.onPause();  memoryMonitor.stop()  }
 
-    // ════════════════════════════════════════════════════════════
-    // Main WebView setup
-    // ════════════════════════════════════════════════════════════
     private fun setupMainWebView() {
         threadClient = ThreadModeClient()
-
         threadClient.onPageLoaded = { url ->
             runOnUiThread {
                 if (!splitPaneActive) urlInput.setText(if (url == HOME) "marrow" else (webView.title?.takeIf { it.isNotBlank() } ?: domainFrom(url)))
-                val title = webView.title ?: ""
-                tabManager.updateActiveTitle(title)
+                tabManager.updateActiveTitle(webView.title ?: "")
                 tabManager.updateActiveUrl(url)
                 renderTabStrip()
                 readThemeColor()
                 if (isSplitMode) topTitleBar.text = domainFrom(url)
             }
         }
-
         webView.webViewClient = threadClient
         webView.webChromeClient = object : WebChromeClient() {
             override fun onProgressChanged(view: WebView?, newProgress: Int) {
@@ -175,28 +150,18 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
-
         applyFullSettings(webView)
         topModeRow.visibility = View.GONE
-
         webView.setOnTouchListener { _, _ ->
             if (isSplitMode && splitPaneActive) setActivePane(false)
             false
         }
     }
 
-    // ════════════════════════════════════════════════════════════
-    // Split WebView setup
-    // ════════════════════════════════════════════════════════════
     private fun setupSplitWebView() {
         applyFullSettings(splitWebView)
-
         splitWebView.webViewClient = object : WebViewClient() {
-            override fun shouldOverrideUrlLoading(
-                view: WebView?,
-                request: WebResourceRequest?
-            ): Boolean = false
-
+            override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean = false
             override fun onPageFinished(view: WebView?, url: String?) {
                 if (url == null) return
                 runOnUiThread {
@@ -205,7 +170,6 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
-
         splitWebView.webChromeClient = object : WebChromeClient() {
             override fun onProgressChanged(view: WebView?, newProgress: Int) {
                 if (splitPaneActive) {
@@ -214,19 +178,14 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
-
         splitWebView.setOnTouchListener { _, _ ->
             if (isSplitMode && !splitPaneActive) setActivePane(true)
             false
         }
     }
 
-    // ════════════════════════════════════════════════════════════
-    // Draggable divider
-    // ════════════════════════════════════════════════════════════
     private fun setupDividerDrag() {
         var lastTapTime = 0L
-
         splitDivider.setOnTouchListener { _, event ->
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
@@ -235,7 +194,6 @@ class MainActivity : AppCompatActivity() {
                     val botParams = bottomPaneContainer.layoutParams as LinearLayout.LayoutParams
                     topWeightAtDragStart    = topParams.weight
                     bottomWeightAtDragStart = botParams.weight
-
                     val now = System.currentTimeMillis()
                     if (now - lastTapTime < 350) snapToEqual()
                     lastTapTime = now
@@ -248,11 +206,9 @@ class MainActivity : AppCompatActivity() {
                     val deltaWeight = (delta / totalHeight) * (topWeightAtDragStart + bottomWeightAtDragStart)
                     val newTop    = (topWeightAtDragStart + deltaWeight).coerceIn(0.2f, 1.8f)
                     val newBottom = (topWeightAtDragStart + bottomWeightAtDragStart) - newTop
-
                     val topParams = topPaneContainer.layoutParams as LinearLayout.LayoutParams
                     topParams.weight = newTop
                     topPaneContainer.layoutParams = topParams
-
                     val botParams = bottomPaneContainer.layoutParams as LinearLayout.LayoutParams
                     botParams.weight = newBottom
                     bottomPaneContainer.layoutParams = botParams
@@ -267,51 +223,40 @@ class MainActivity : AppCompatActivity() {
         val topParams = topPaneContainer.layoutParams as LinearLayout.LayoutParams
         topParams.weight = 1f
         topPaneContainer.layoutParams = topParams
-
         val botParams = bottomPaneContainer.layoutParams as LinearLayout.LayoutParams
         botParams.weight = 1f
         bottomPaneContainer.layoutParams = botParams
     }
 
-    // ════════════════════════════════════════════════════════════
-    // WebView settings
-    // ════════════════════════════════════════════════════════════
     private fun applyFullSettings(wv: WebView) {
         wv.settings.apply {
             javaScriptEnabled = true
+            domStorageEnabled = true
             blockNetworkImage = false
             loadsImagesAutomatically = true
             cacheMode = WebSettings.LOAD_DEFAULT
         }
     }
 
-    // ════════════════════════════════════════════════════════════
-    // Split mode
-    // ════════════════════════════════════════════════════════════
     private fun enterSplitMode() {
         isSplitMode = true
         splitPaneActive = false
-
         bottomPaneContainer.visibility = View.VISIBLE
         splitDivider.visibility        = View.VISIBLE
         exitSplitBtn.visibility        = View.VISIBLE
         splitBtn.visibility            = View.GONE
         topTitleBar.visibility         = View.VISIBLE
         bottomTitleBar.visibility      = View.VISIBLE
-
         snapToEqual()
-
         splitWebView.loadUrl(HOME)
         bottomTitleBar.text = "marrow"
         topTitleBar.text = domainFrom(webView.url ?: "")
-
         setActivePane(false)
     }
 
     private fun exitSplitMode() {
         isSplitMode = false
         splitPaneActive = false
-
         splitWebView.stopLoading()
         splitWebView.loadUrl("about:blank")
         bottomPaneContainer.visibility = View.GONE
@@ -322,24 +267,17 @@ class MainActivity : AppCompatActivity() {
         bottomTitleBar.visibility      = View.GONE
         splitDimOverlay.visibility     = View.GONE
         topModeRow.visibility          = View.VISIBLE
-
         setActivePane(false)
     }
 
-    // ════════════════════════════════════════════════════════════
-    // Active pane
-    // ════════════════════════════════════════════════════════════
     private fun setActivePane(bottom: Boolean) {
         splitPaneActive = bottom
-
         if (!isSplitMode) {
             urlInput.setText(domainFrom(tabManager.getActiveTab()?.url ?: ""))
             updatePaneIndicator(false)
             return
         }
-
         updatePaneIndicator(bottom)
-
         if (bottom) {
             urlInput.setText(domainFrom(splitWebView.url ?: ""))
             splitDivider.setBackgroundColor(Color.parseColor(COLOR_BOTTOM_PANE))
@@ -374,38 +312,23 @@ class MainActivity : AppCompatActivity() {
         )
     }
 
-    // ════════════════════════════════════════════════════════════
-    // URL bar
-    // ════════════════════════════════════════════════════════════
     private fun setupUrlBar() {
-        // Show real URL when focused for editing, domain/title when not
         urlInput.setOnFocusChangeListener { _, hasFocus ->
             if (hasFocus) {
-                val realUrl = if (isSplitMode && splitPaneActive)
-                    splitWebView.url ?: ""
-                else
-                    tabManager.getActiveTab()?.url ?: ""
-                if (realUrl != HOME) urlInput.setText(realUrl)
-                else urlInput.setText("")
+                val realUrl = if (isSplitMode && splitPaneActive) splitWebView.url ?: "" else tabManager.getActiveTab()?.url ?: ""
+                if (realUrl != HOME) urlInput.setText(realUrl) else urlInput.setText("")
                 urlInput.selectAll()
             } else {
-                val url = if (isSplitMode && splitPaneActive)
-                    splitWebView.url ?: ""
-                else
-                    tabManager.getActiveTab()?.url ?: ""
+                val url = if (isSplitMode && splitPaneActive) splitWebView.url ?: "" else tabManager.getActiveTab()?.url ?: ""
                 urlInput.setText(if (url == HOME) "marrow" else (webView.title?.takeIf { it.isNotBlank() } ?: domainFrom(url)))
             }
         }
-
         urlInput.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_GO) {
                 val url = normalizeUrl(urlInput.text.toString().trim())
                 hideKeyboard()
-                if (isSplitMode && splitPaneActive) {
-                    navigateTo(url, splitWebView)
-                } else {
-                    navigateTo(url, webView)
-                }
+                if (isSplitMode && splitPaneActive) navigateTo(url, splitWebView)
+                else navigateTo(url, webView)
                 true
             } else false
         }
@@ -427,48 +350,36 @@ class MainActivity : AppCompatActivity() {
         imm.hideSoftInputFromWindow(urlInput.windowToken, 0)
     }
 
-    // ════════════════════════════════════════════════════════════
-    // Back navigation — per active pane
-    // ════════════════════════════════════════════════════════════
     override fun onBackPressed() {
         val active = activeWebView()
-        if (active.canGoBack()) {
-            active.goBack()
-        } else {
-            super.onBackPressed()
-        }
+        if (active.canGoBack()) active.goBack()
+        else super.onBackPressed()
     }
 
-    // ════════════════════════════════════════════════════════════
-    // Buttons
-    // ════════════════════════════════════════════════════════════
     private fun setupButtons() {
         tabCountBtn.setOnClickListener {
-            if (tabOverlay.visibility == View.VISIBLE) {
-                tabOverlay.visibility = View.GONE
-            } else {
-                renderTabOverlay()
-                tabOverlay.visibility = View.VISIBLE
-            }
+            if (tabOverlay.visibility == View.VISIBLE) tabOverlay.visibility = View.GONE
+            else { renderTabOverlay(); tabOverlay.visibility = View.VISIBLE }
         }
-
         imgSearchBtn.setOnClickListener { searchImages() }
         splitBtn.setOnClickListener     { enterSplitMode() }
         exitSplitBtn.setOnClickListener { exitSplitMode() }
-
         topTitleBar.setOnClickListener    { if (isSplitMode) setActivePane(false) }
         bottomTitleBar.setOnClickListener { if (isSplitMode) setActivePane(true) }
     }
 
-    // ════════════════════════════════════════════════════════════
-    // Image search
-    // ════════════════════════════════════════════════════════════
     private fun searchImages() {
-        val current = urlInput.text.toString()
-        val query = extractSearchQuery(current).ifBlank { current }
-        if (query.isBlank()) return
-        val target = activeWebView()
-        navigateTo(DDG_IMAGE_BASE + URLEncoder.encode(query, "UTF-8"), target)
+        val activeWv = activeWebView()
+        val fromUrl = extractSearchQuery(activeWv.url ?: "")
+        val fromBar = urlInput.text.toString().trim()
+        val fromTitle = activeWv.title?.trim() ?: ""
+        val query = when {
+            fromUrl.isNotBlank()                             -> fromUrl
+            fromBar.isNotBlank() && !fromBar.contains(".") -> fromBar
+            fromTitle.isNotBlank()                           -> fromTitle
+            else                                             -> return
+        }
+        navigateTo(DDG_IMAGE_BASE + URLEncoder.encode(query, "UTF-8"), activeWv)
     }
 
     private fun extractSearchQuery(url: String): String {
@@ -477,21 +388,14 @@ class MainActivity : AppCompatActivity() {
         } catch (e: Exception) { "" }
     }
 
-    // ════════════════════════════════════════════════════════════
-    // Theme color
-    // ════════════════════════════════════════════════════════════
     private fun readThemeColor() {
         webView.evaluateJavascript(
-            "(function(){ var m = document.querySelector('meta[name=theme-color]'); " +
-            "return m ? m.getAttribute('content') : ''; })()"
+            "(function(){ var m = document.querySelector('meta[name=theme-color]'); return m ? m.getAttribute('content') : ''; })()"
         ) { value ->
             val raw = value?.trim('"') ?: ""
             runOnUiThread {
                 try {
-                    chromeBg.setBackgroundColor(
-                        if (raw.startsWith("#")) Color.parseColor(raw)
-                        else Color.parseColor("#0f0f0f")
-                    )
+                    chromeBg.setBackgroundColor(if (raw.startsWith("#")) Color.parseColor(raw) else Color.parseColor("#0f0f0f"))
                 } catch (e: Exception) {
                     chromeBg.setBackgroundColor(Color.parseColor("#0f0f0f"))
                 }
@@ -499,13 +403,9 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // ════════════════════════════════════════════════════════════
-    // Tab strip + overlay
-    // ════════════════════════════════════════════════════════════
     private fun renderTabStrip() {
         tabStripInner.removeAllViews()
         tabCountBtn.text = tabManager.getTabs().size.toString()
-
         for (tab in tabManager.getTabs()) {
             val pill = TextView(this).apply {
                 text = when {
@@ -528,7 +428,6 @@ class MainActivity : AppCompatActivity() {
             ).apply { marginEnd = 6 }
             tabStripInner.addView(pill, lp)
         }
-
         val atLimit = tabManager.getTabs().size >= 4
         val addBtn = TextView(this).apply {
             text = if (atLimit) "4/4" else "+"
@@ -537,13 +436,8 @@ class MainActivity : AppCompatActivity() {
             setPadding(24, 12, 24, 12)
             background = getDrawable(R.drawable.bg_tab_pill)
             setOnClickListener {
-                if (atLimit) {
-                    Toast.makeText(this@MainActivity,
-                        "Tab limit reached — close a tab first",
-                        Toast.LENGTH_SHORT).show()
-                } else {
-                    openNewTab()
-                }
+                if (atLimit) Toast.makeText(this@MainActivity, "Tab limit reached — close a tab first", Toast.LENGTH_SHORT).show()
+                else openNewTab()
             }
         }
         tabStripInner.addView(addBtn)
@@ -561,7 +455,6 @@ class MainActivity : AppCompatActivity() {
             orientation = LinearLayout.VERTICAL
             setPadding(16, 16, 16, 16)
         }
-
         for (tab in tabManager.getTabs()) {
             val card = LinearLayout(this).apply {
                 orientation = LinearLayout.HORIZONTAL
@@ -569,7 +462,6 @@ class MainActivity : AppCompatActivity() {
                 setPadding(16, 12, 16, 12)
                 gravity = android.view.Gravity.CENTER_VERTICAL
             }
-
             tab.thumbnail?.let { thumb ->
                 card.addView(android.widget.ImageView(this).apply {
                     setImageBitmap(thumb)
@@ -577,7 +469,6 @@ class MainActivity : AppCompatActivity() {
                     scaleType = android.widget.ImageView.ScaleType.CENTER_CROP
                 })
             }
-
             card.addView(TextView(this).apply {
                 text = when {
                     tab.url == HOME        -> "marrow home"
@@ -586,11 +477,8 @@ class MainActivity : AppCompatActivity() {
                 }
                 textSize = 12f
                 setTextColor(Color.parseColor("#f0ead6"))
-                layoutParams = LinearLayout.LayoutParams(
-                    0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f
-                )
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
             })
-
             card.addView(TextView(this).apply {
                 text = "✕"
                 textSize = 14f
@@ -598,28 +486,20 @@ class MainActivity : AppCompatActivity() {
                 setPadding(12, 0, 0, 0)
                 setOnClickListener { closeTab(tab.id) }
             })
-
             card.setOnClickListener { switchToTab(tab.id) }
-
             list.addView(card, LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
             ).apply { bottomMargin = 8 })
         }
-
         scroll.addView(list)
         tabOverlay.addView(scroll)
     }
 
-    // ════════════════════════════════════════════════════════════
-    // Tab actions
-    // ════════════════════════════════════════════════════════════
     private fun openNewTab() {
         captureActivePane()
         val result = tabManager.openTab(HOME)
-        if (result.oldestClosed) {
-            Toast.makeText(this, "Oldest tab closed", Toast.LENGTH_SHORT).show()
-        }
+        if (result.oldestClosed) Toast.makeText(this, "Oldest tab closed", Toast.LENGTH_SHORT).show()
         activeWebView().loadUrl(HOME)
         renderTabStrip()
         tabOverlay.visibility = View.GONE
@@ -652,9 +532,6 @@ class MainActivity : AppCompatActivity() {
         tabOverlay.visibility = View.GONE
     }
 
-    // ════════════════════════════════════════════════════════════
-    // Helpers
-    // ════════════════════════════════════════════════════════════
     private fun activeWebView(): WebView =
         if (isSplitMode && splitPaneActive) splitWebView else webView
 
@@ -669,9 +546,7 @@ class MainActivity : AppCompatActivity() {
             val canvas = android.graphics.Canvas(bmp)
             wv.draw(canvas)
             tabManager.updateActiveThumbnail(bmp)
-        } catch (e: Exception) {
-            // Skip thumbnail if capture fails
-        }
+        } catch (e: Exception) { }
     }
 
     private fun domainFrom(url: String): String {
