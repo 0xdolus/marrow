@@ -529,13 +529,22 @@ class MainActivity : AppCompatActivity() {
             tabStripInner.addView(pill, lp)
         }
 
+        val atLimit = tabManager.getTabs().size >= 4
         val addBtn = TextView(this).apply {
-            text = "+"
-            textSize = 16f
-            setTextColor(Color.parseColor("#c8bfaf"))
+            text = if (atLimit) "4/4" else "+"
+            textSize = if (atLimit) 10f else 16f
+            setTextColor(Color.parseColor(if (atLimit) "#c0392b" else "#c8bfaf"))
             setPadding(24, 12, 24, 12)
             background = getDrawable(R.drawable.bg_tab_pill)
-            setOnClickListener { openNewTab() }
+            setOnClickListener {
+                if (atLimit) {
+                    Toast.makeText(this@MainActivity,
+                        "Tab limit reached — close a tab first",
+                        Toast.LENGTH_SHORT).show()
+                } else {
+                    openNewTab()
+                }
+            }
         }
         tabStripInner.addView(addBtn)
     }
@@ -618,6 +627,9 @@ class MainActivity : AppCompatActivity() {
 
     private fun switchToTab(id: Int) {
         captureActivePane()
+        val prev = activeWebView()
+        prev.loadUrl("about:blank")
+        prev.clearCache(false)
         val tab = tabManager.switchToTab(id) ?: return
         val target = activeWebView()
         target.loadUrl(tab.url)
@@ -648,10 +660,18 @@ class MainActivity : AppCompatActivity() {
 
     private fun captureActivePane() {
         val wv = activeWebView()
-        wv.isDrawingCacheEnabled = true
-        val bmp = Bitmap.createBitmap(wv.drawingCache)
-        wv.isDrawingCacheEnabled = false
-        tabManager.updateActiveThumbnail(bmp)
+        try {
+            val bmp = Bitmap.createBitmap(
+                wv.width.takeIf { it > 0 } ?: 1,
+                wv.height.takeIf { it > 0 } ?: 1,
+                Bitmap.Config.ARGB_8888
+            )
+            val canvas = android.graphics.Canvas(bmp)
+            wv.draw(canvas)
+            tabManager.updateActiveThumbnail(bmp)
+        } catch (e: Exception) {
+            // Skip thumbnail if capture fails
+        }
     }
 
     private fun domainFrom(url: String): String {
