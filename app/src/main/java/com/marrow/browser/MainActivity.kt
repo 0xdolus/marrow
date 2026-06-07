@@ -156,7 +156,7 @@ class MainActivity : AppCompatActivity() {
 
         threadClient.onPageLoaded = { url ->
             runOnUiThread {
-                if (!splitPaneActive) urlInput.setText(if (url == HOME) "marrow" else (webView.title?.takeIf { it.isNotBlank() } ?: domainFrom(url)))
+                if (!splitPaneActive) urlInput.setText(if (url == HOME) "marrow" else (webView.title?.takeIf { it.isNotBlank() } ?: ""))
                 val title = webView.title ?: ""
                 tabManager.updateActiveTitle(title)
                 tabManager.updateActiveUrl(url)
@@ -200,7 +200,7 @@ class MainActivity : AppCompatActivity() {
             override fun onPageFinished(view: WebView?, url: String?) {
                 if (url == null) return
                 runOnUiThread {
-                    if (splitPaneActive) urlInput.setText(domainFrom(url))
+                    if (splitPaneActive) urlInput.setText("")
                     bottomTitleBar.text = domainFrom(url)
                 }
             }
@@ -333,7 +333,7 @@ class MainActivity : AppCompatActivity() {
         splitPaneActive = bottom
 
         if (!isSplitMode) {
-            urlInput.setText(domainFrom(tabManager.getActiveTab()?.url ?: ""))
+            urlInput.setText(tabManager.getActiveTab()?.title?.takeIf { it.isNotBlank() } ?: "")
             updatePaneIndicator(false)
             return
         }
@@ -341,7 +341,7 @@ class MainActivity : AppCompatActivity() {
         updatePaneIndicator(bottom)
 
         if (bottom) {
-            urlInput.setText(domainFrom(splitWebView.url ?: ""))
+            urlInput.setText("")
             splitDivider.setBackgroundColor(Color.parseColor(COLOR_BOTTOM_PANE))
             topModeRow.visibility      = View.GONE
             topTitleBar.visibility     = View.VISIBLE
@@ -351,7 +351,7 @@ class MainActivity : AppCompatActivity() {
             bottomTitleBar.setBackgroundColor(Color.parseColor(COLOR_BOTTOM_PANE))
             bottomTitleBar.setTextColor(Color.parseColor("#0f0f0f"))
         } else {
-            urlInput.setText(domainFrom(tabManager.getActiveTab()?.url ?: ""))
+            urlInput.setText(tabManager.getActiveTab()?.title?.takeIf { it.isNotBlank() } ?: "")
             splitDivider.setBackgroundColor(Color.parseColor(COLOR_TOP_PANE))
             topModeRow.visibility      = View.VISIBLE
             topTitleBar.visibility     = View.GONE
@@ -393,7 +393,7 @@ class MainActivity : AppCompatActivity() {
                     splitWebView.url ?: ""
                 else
                     tabManager.getActiveTab()?.url ?: ""
-                urlInput.setText(if (url == HOME) "marrow" else (webView.title?.takeIf { it.isNotBlank() } ?: domainFrom(url)))
+                urlInput.setText(if (url == HOME) "marrow" else (webView.title?.takeIf { it.isNotBlank() } ?: ""))
             }
         }
 
@@ -473,7 +473,8 @@ class MainActivity : AppCompatActivity() {
 
     private fun extractSearchQuery(url: String): String {
         return try {
-            android.net.Uri.parse(url).getQueryParameter("q") ?: ""
+            val uri = android.net.Uri.parse(url)
+            uri.getQueryParameter("text") ?: uri.getQueryParameter("q") ?: ""
         } catch (e: Exception) { "" }
     }
 
@@ -633,7 +634,7 @@ class MainActivity : AppCompatActivity() {
         val tab = tabManager.switchToTab(id) ?: return
         val target = activeWebView()
         target.loadUrl(tab.url)
-        urlInput.setText(domainFrom(tab.url))
+        urlInput.setText(if (tab.url == HOME) "marrow" else tab.title.takeIf { it.isNotBlank() } ?: "")
         renderTabStrip()
         tabOverlay.visibility = View.GONE
     }
@@ -643,7 +644,7 @@ class MainActivity : AppCompatActivity() {
         val target = activeWebView()
         if (next != null) {
             target.loadUrl(next.url)
-            urlInput.setText(domainFrom(next.url))
+            urlInput.setText(if (next.url == HOME) "marrow" else next.title.takeIf { it.isNotBlank() } ?: "")
         } else {
             target.loadUrl(HOME)
             urlInput.setText("marrow")
