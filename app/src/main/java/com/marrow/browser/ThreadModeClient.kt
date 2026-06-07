@@ -14,21 +14,14 @@ class ThreadModeClient(
 
     var isFullMode = false
 
-    // Called on the UI thread when a page finishes loading — set by MainActivity
     var onPageLoaded: ((url: String) -> Unit)? = null
-
-    // Called when a Cloudflare challenge page is detected — set by MainActivity
     var onCloudflareDetected: ((domain: String) -> Unit)? = null
 
     private val jsAllowedAlways = mutableSetOf<String>()
     private val jsAllowedOnce   = mutableSetOf<String>()
     private val jsPending       = mutableSetOf<String>()
 
-    // Silences all JS banners for this page load (Keep off)
     private var jsBlockedForPage = false
-
-    // Survives onPageStarted so the bypass persists through the Cloudflare reload.
-    // Cleared in onPageFinished once the challenge is passed.
     private var cfBypassDomain: String? = null
 
     fun loadAllowedAlways(domains: Set<String>) { jsAllowedAlways.addAll(domains) }
@@ -48,7 +41,6 @@ class ThreadModeClient(
         jsPending.clear()
     }
 
-    /** Allow JS from this domain to survive the upcoming Cloudflare reload. */
     fun setCfBypass(domain: String) {
         cfBypassDomain = domain
     }
@@ -56,15 +48,23 @@ class ThreadModeClient(
     private fun isJsAllowed(domain: String) =
         jsAllowedAlways.contains(domain) || jsAllowedOnce.contains(domain)
 
+    override fun shouldOverrideUrlLoading(
+        view: WebView,
+        request: WebResourceRequest
+    ): Boolean {
+        // Always allow navigation away from the local homepage
+        val url = request.url.toString()
+        if (url.startsWith("file://")) return false
+        return false
+    }
+
     override fun onPageFinished(view: WebView, url: String) {
         val title = view.title ?: ""
 
         if (!isFullMode && title == "Just a moment...") {
-            // Cloudflare challenge detected — notify MainActivity
             val domain = try { Uri.parse(url).host ?: url } catch (e: Exception) { url }
             view.post { onCloudflareDetected?.invoke(domain) }
         } else {
-            // Challenge passed or normal page — clear the bypass
             cfBypassDomain = null
         }
 
@@ -72,11 +72,11 @@ class ThreadModeClient(
     }
 
     override fun onPageStarted(view: WebView, url: String, favicon: Bitmap?) {
+        // Don't reset JS state when navigating from the homepage
+        if (url.startsWith("file://")) return
         jsAllowedOnce.clear()
         jsPending.clear()
         jsBlockedForPage = false
-        // cfBypassDomain is intentionally NOT cleared here —
-        // it must survive the reload triggered after the user allows scripts
     }
 
     override fun shouldInterceptRequest(
@@ -85,14 +85,17 @@ class ThreadModeClient(
     ): WebResourceResponse? {
         if (isFullMode) return null
 
-        val url    = request.url.toString()
+        val url = request.url.toString()
+
+        // Never intercept local file requests — homepage needs JS to navigate
+        if (url.startsWith("file://")) return null
+
         val domain = request.url.host ?: return null
 
         if (isImageUrl(url) || isFontUrl(url)) return emptyResponse()
 
         if (isJsUrl(url)) {
             if (jsBlockedForPage) return emptyResponse()
-            // Allow if explicitly permitted OR if it's the active Cloudflare bypass domain
             if (isJsAllowed(domain) || domain == cfBypassDomain) return null
             if (!jsPending.contains(domain)) {
                 jsPending.add(domain)
