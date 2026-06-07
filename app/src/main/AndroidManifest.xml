@@ -1,5 +1,6 @@
-<?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+<?xml version="1.0" encoding="utf-8"?> 
+<manifest 
+xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.marrow.browser">
 
     <uses-permission android:name="android.permission.INTERNET" />
@@ -10,15 +11,19 @@
         android:theme="@style/Theme.AppCompat.NoActionBar"
         android:usesCleartextTraffic="false">
 
-        <activity
-            android:name=".MainActivity"
-            android:exported="true"
-            android:windowSoftInputMode="adjustResize">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
+<activity android:name=".MainActivity"
+    android:exported="false" />
+
+<activity
+    android:name=".SplashActivity"
+    android:exported="true"
+    android:process=":webview"
+    android:theme="@style/Theme.AppCompat.NoActionBar">
+    <intent-filter>
+        <action android:name="android.intent.action.MAIN" />
+        <category android:name="android.intent.category.LAUNCHER" />
+    </intent-filter>
+</activity>
 
     </application>
 

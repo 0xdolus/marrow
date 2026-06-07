@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#0f0f0f">
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:alpha="0">
+
+        <!-- Icon -->
+        <ImageView
+            android:id="@+id/splashIcon"
+            android:layout_width="72dp"
+            android:layout_height="72dp"
+            android:src="@mipmap/ic_launcher"
+            android:scaleType="fitCenter" />
+
+        <!-- Wordmark -->
+        <TextView
+            android:id="@+id/splashWordmark"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="marrow"
+            android:textColor="#444444"
+            android:textSize="13sp"
+            android:letterSpacing="0.3"
+            android:layout_marginTop="16dp" />
+
+    </LinearLayout>
+
+</FrameLayout>
