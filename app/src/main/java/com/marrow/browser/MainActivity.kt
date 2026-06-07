@@ -156,7 +156,7 @@ class MainActivity : AppCompatActivity() {
 
         threadClient.onPageLoaded = { url ->
             runOnUiThread {
-                if (!splitPaneActive) urlInput.setText(url)
+                if (!splitPaneActive) urlInput.setText(if (url == HOME) "marrow" else (webView.title?.takeIf { it.isNotBlank() } ?: domainFrom(url)))
                 val title = webView.title ?: ""
                 tabManager.updateActiveTitle(title)
                 tabManager.updateActiveUrl(url)
@@ -177,6 +177,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         applyFullSettings(webView)
+        topModeRow.visibility = View.GONE
 
         webView.setOnTouchListener { _, _ ->
             if (isSplitMode && splitPaneActive) setActivePane(false)
@@ -199,7 +200,7 @@ class MainActivity : AppCompatActivity() {
             override fun onPageFinished(view: WebView?, url: String?) {
                 if (url == null) return
                 runOnUiThread {
-                    if (splitPaneActive) urlInput.setText(url)
+                    if (splitPaneActive) urlInput.setText(domainFrom(url))
                     bottomTitleBar.text = domainFrom(url)
                 }
             }
@@ -332,7 +333,7 @@ class MainActivity : AppCompatActivity() {
         splitPaneActive = bottom
 
         if (!isSplitMode) {
-            urlInput.setText(tabManager.getActiveTab()?.url ?: "")
+            urlInput.setText(domainFrom(tabManager.getActiveTab()?.url ?: ""))
             updatePaneIndicator(false)
             return
         }
@@ -340,7 +341,7 @@ class MainActivity : AppCompatActivity() {
         updatePaneIndicator(bottom)
 
         if (bottom) {
-            urlInput.setText(splitWebView.url ?: "")
+            urlInput.setText(domainFrom(splitWebView.url ?: ""))
             splitDivider.setBackgroundColor(Color.parseColor(COLOR_BOTTOM_PANE))
             topModeRow.visibility      = View.GONE
             topTitleBar.visibility     = View.VISIBLE
@@ -350,7 +351,7 @@ class MainActivity : AppCompatActivity() {
             bottomTitleBar.setBackgroundColor(Color.parseColor(COLOR_BOTTOM_PANE))
             bottomTitleBar.setTextColor(Color.parseColor("#0f0f0f"))
         } else {
-            urlInput.setText(tabManager.getActiveTab()?.url ?: "")
+            urlInput.setText(domainFrom(tabManager.getActiveTab()?.url ?: ""))
             splitDivider.setBackgroundColor(Color.parseColor(COLOR_TOP_PANE))
             topModeRow.visibility      = View.VISIBLE
             topTitleBar.visibility     = View.GONE
@@ -377,6 +378,25 @@ class MainActivity : AppCompatActivity() {
     // URL bar
     // ════════════════════════════════════════════════════════════
     private fun setupUrlBar() {
+        // Show real URL when focused for editing, domain/title when not
+        urlInput.setOnFocusChangeListener { _, hasFocus ->
+            if (hasFocus) {
+                val realUrl = if (isSplitMode && splitPaneActive)
+                    splitWebView.url ?: ""
+                else
+                    tabManager.getActiveTab()?.url ?: ""
+                if (realUrl != HOME) urlInput.setText(realUrl)
+                else urlInput.setText("")
+                urlInput.selectAll()
+            } else {
+                val url = if (isSplitMode && splitPaneActive)
+                    splitWebView.url ?: ""
+                else
+                    tabManager.getActiveTab()?.url ?: ""
+                urlInput.setText(if (url == HOME) "marrow" else (webView.title?.takeIf { it.isNotBlank() } ?: domainFrom(url)))
+            }
+        }
+
         urlInput.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_GO) {
                 val url = normalizeUrl(urlInput.text.toString().trim())
@@ -601,7 +621,7 @@ class MainActivity : AppCompatActivity() {
         val tab = tabManager.switchToTab(id) ?: return
         val target = activeWebView()
         target.loadUrl(tab.url)
-        urlInput.setText(tab.url)
+        urlInput.setText(domainFrom(tab.url))
         renderTabStrip()
         tabOverlay.visibility = View.GONE
     }
@@ -611,10 +631,10 @@ class MainActivity : AppCompatActivity() {
         val target = activeWebView()
         if (next != null) {
             target.loadUrl(next.url)
-            urlInput.setText(next.url)
+            urlInput.setText(domainFrom(next.url))
         } else {
             target.loadUrl(HOME)
-            urlInput.setText(HOME)
+            urlInput.setText("marrow")
         }
         renderTabStrip()
         tabOverlay.visibility = View.GONE
