@@ -12,48 +12,49 @@ import androidx.appcompat.app.AppCompatActivity
 class SplashActivity : AppCompatActivity() {
 
     private var webViewWarmed = false
-    private var animationDone = false
+    private var minTimeDone = false
+    private lateinit var container: LinearLayout
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_splash)
 
-        val container = findViewById<LinearLayout>(
-            resources.getIdentifier("splashIcon", "id", packageName)
-        ).parent as View
+        container = findViewById(R.id.splashContainer)
 
-        // Fade in the splash content
+        // Fade in
+        container.alpha = 0f
         container.animate()
             .alpha(1f)
             .setDuration(300)
-            .setListener(null)
             .start()
 
-        // Pre-warm WebView in background
+        // Pre-warm WebView
         warmWebView()
 
-        // Minimum display time — fade out after 1.2s minimum
+        // Minimum 1.2s display
         container.postDelayed({
-            animationDone = true
-            if (webViewWarmed) fadeOutAndLaunch(container)
+            minTimeDone = true
+            if (webViewWarmed) launch()
         }, 1200)
     }
 
     private fun warmWebView() {
-        val wv = WebView(applicationContext)
-        wv.settings.javaScriptEnabled = true
-        wv.loadUrl("about:blank")
-        wv.post {
+        try {
+            val wv = WebView(applicationContext)
+            wv.settings.javaScriptEnabled = true
+            wv.loadUrl("about:blank")
+            wv.post {
+                webViewWarmed = true
+                if (minTimeDone) launch()
+            }
+        } catch (e: Exception) {
             webViewWarmed = true
-            val container = (findViewById<View>(
-                resources.getIdentifier("splashIcon", "id", packageName)
-            ).parent as View)
-            if (animationDone) fadeOutAndLaunch(container)
+            if (minTimeDone) launch()
         }
     }
 
-    private fun fadeOutAndLaunch(view: View) {
-        view.animate()
+    private fun launch() {
+        container.animate()
             .alpha(0f)
             .setDuration(250)
             .setListener(object : AnimatorListenerAdapter() {

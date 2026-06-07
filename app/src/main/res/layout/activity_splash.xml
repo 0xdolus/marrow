@@ -5,14 +5,13 @@
     android:background="#0f0f0f">
 
     <LinearLayout
+        android:id="@+id/splashContainer"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center"
         android:orientation="vertical"
-        android:gravity="center"
-        android:alpha="0">
+        android:gravity="center">
 
-        <!-- Icon -->
         <ImageView
             android:id="@+id/splashIcon"
             android:layout_width="72dp"
@@ -20,7 +19,6 @@
             android:src="@mipmap/ic_launcher"
             android:scaleType="fitCenter" />
 
-        <!-- Wordmark -->
         <TextView
             android:id="@+id/splashWordmark"
             android:layout_width="wrap_content"
