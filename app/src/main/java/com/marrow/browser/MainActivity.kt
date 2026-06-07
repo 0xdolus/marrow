@@ -1,9 +1,10 @@
 package com.marrow.browser
 
 import android.content.Context
-import android.graphics.Bitmap
 import android.graphics.Color
+import android.graphics.Bitmap
 import android.os.Bundle
+import android.view.MotionEvent
 import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
@@ -31,6 +32,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var pipDot: TextView
     private lateinit var memBanner: TextView
     private lateinit var imgSearchBtn: TextView
+    private lateinit var paneIndicator: View
 
     // ── JS banner ────────────────────────────────────────────────
     private lateinit var jsBanner: LinearLayout
@@ -52,9 +54,19 @@ class MainActivity : AppCompatActivity() {
     private lateinit var splitBtn: TextView
     private lateinit var exitSplitBtn: TextView
     private lateinit var topPaneContainer: LinearLayout
+    private lateinit var topModeRow: LinearLayout
+    private lateinit var topTitleBar: TextView
+    private lateinit var bottomTitleBar: TextView
+    private lateinit var splitDimOverlay: View
+    private lateinit var bottomPaneContainer: LinearLayout
 
     private var isSplitMode = false
-    private var splitPaneActive = false  // false = top pane, true = bottom pane
+    private var splitPaneActive = false
+
+    // Draggable divider
+    private var dividerDragStartY = 0f
+    private var topWeightAtDragStart = 1f
+    private var bottomWeightAtDragStart = 1f
 
     // ── Tab + memory ─────────────────────────────────────────────
     private lateinit var tabManager: TabManager
@@ -67,6 +79,8 @@ class MainActivity : AppCompatActivity() {
     companion object {
         const val DDG_BASE = "https://html.duckduckgo.com/html/?q="
         const val DDG_IMAGE_BASE = "https://duckduckgo.com/?iax=images&ia=images&q="
+        const val COLOR_TOP_PANE    = "#5a9a5a"
+        const val COLOR_BOTTOM_PANE = "#8ab8d8"
     }
 
     // ════════════════════════════════════════════════════════════
@@ -81,6 +95,7 @@ class MainActivity : AppCompatActivity() {
         setupMemoryMonitor()
         setupMainWebView()
         setupSplitWebView()
+        setupDividerDrag()
         setupUrlBar()
         setupButtons()
 
@@ -91,35 +106,41 @@ class MainActivity : AppCompatActivity() {
     // View binding
     // ════════════════════════════════════════════════════════════
     private fun bindViews() {
-        chromeBg       = findViewById(R.id.chromeBg)
-        webView        = findViewById(R.id.webView)
-        threadBadge    = findViewById(R.id.threadBadge)
-        fullBtn        = findViewById(R.id.fullBtn)
-        urlInput       = findViewById(R.id.urlInput)
-        tabCountBtn    = findViewById(R.id.tabCountBtn)
-        tabStripInner  = findViewById(R.id.tabStripInner)
-        tabOverlay     = findViewById(R.id.tabOverlay)
-        loadingBar     = findViewById(R.id.loadingBar)
-        pipDot         = findViewById(R.id.pipDot)
-        memBanner      = findViewById(R.id.memBanner)
-        imgSearchBtn   = findViewById(R.id.imgSearchBtn)
+        chromeBg          = findViewById(R.id.chromeBg)
+        webView           = findViewById(R.id.webView)
+        threadBadge       = findViewById(R.id.threadBadge)
+        fullBtn           = findViewById(R.id.fullBtn)
+        urlInput          = findViewById(R.id.urlInput)
+        tabCountBtn       = findViewById(R.id.tabCountBtn)
+        tabStripInner     = findViewById(R.id.tabStripInner)
+        tabOverlay        = findViewById(R.id.tabOverlay)
+        loadingBar        = findViewById(R.id.loadingBar)
+        pipDot            = findViewById(R.id.pipDot)
+        memBanner         = findViewById(R.id.memBanner)
+        imgSearchBtn      = findViewById(R.id.imgSearchBtn)
+        paneIndicator     = findViewById(R.id.paneIndicator)
 
-        jsBanner       = findViewById(R.id.jsBanner)
-        jsBannerDomain = findViewById(R.id.jsBannerDomain)
-        jsAllowBtn     = findViewById(R.id.jsAllowBtn)
-        jsAllowOnceBtn = findViewById(R.id.jsAllowOnceBtn)
-        jsKeepOffBtn   = findViewById(R.id.jsKeepOffBtn)
+        jsBanner          = findViewById(R.id.jsBanner)
+        jsBannerDomain    = findViewById(R.id.jsBannerDomain)
+        jsAllowBtn        = findViewById(R.id.jsAllowBtn)
+        jsAllowOnceBtn    = findViewById(R.id.jsAllowOnceBtn)
+        jsKeepOffBtn      = findViewById(R.id.jsKeepOffBtn)
 
-        cfBanner       = findViewById(R.id.cfBanner)
-        cfBannerDomain = findViewById(R.id.cfBannerDomain)
-        cfAllowBtn     = findViewById(R.id.cfAllowBtn)
-        cfDismissBtn   = findViewById(R.id.cfDismissBtn)
+        cfBanner          = findViewById(R.id.cfBanner)
+        cfBannerDomain    = findViewById(R.id.cfBannerDomain)
+        cfAllowBtn        = findViewById(R.id.cfAllowBtn)
+        cfDismissBtn      = findViewById(R.id.cfDismissBtn)
 
         splitWebView      = findViewById(R.id.splitWebView)
         splitDivider      = findViewById(R.id.splitDivider)
         splitBtn          = findViewById(R.id.splitBtn)
         exitSplitBtn      = findViewById(R.id.exitSplitBtn)
         topPaneContainer  = findViewById(R.id.topPaneContainer)
+        topModeRow        = findViewById(R.id.topModeRow)
+        topTitleBar       = findViewById(R.id.topTitleBar)
+        bottomTitleBar    = findViewById(R.id.bottomTitleBar)
+        splitDimOverlay   = findViewById(R.id.splitDimOverlay)
+        bottomPaneContainer = findViewById(R.id.bottomPaneContainer)
     }
 
     // ════════════════════════════════════════════════════════════
@@ -147,7 +168,8 @@ class MainActivity : AppCompatActivity() {
             MemoryMonitor.Level.RED    -> "#c0392b"
         }
         pipDot.background.setTint(Color.parseColor(color))
-        if (level == MemoryMonitor.Level.RED) {
+        // Fix #8: suppress memory banner in split mode
+        if (level == MemoryMonitor.Level.RED && !isSplitMode) {
             memBanner.text = getString(R.string.mem_warning)
             memBanner.visibility = View.VISIBLE
         } else {
@@ -169,10 +191,15 @@ class MainActivity : AppCompatActivity() {
         threadClient.onPageLoaded = { url ->
             runOnUiThread {
                 if (!splitPaneActive) urlInput.setText(url)
-                tabManager.updateActiveTitle(webView.title ?: "")
+                val title = webView.title ?: ""
+                tabManager.updateActiveTitle(title)
                 tabManager.updateActiveUrl(url)
                 renderTabStrip()
                 readThemeColor()
+                // Fix #6: update top title bar with real page title
+                if (isSplitMode) {
+                    topTitleBar.text = domainFrom(url)
+                }
             }
         }
 
@@ -211,8 +238,11 @@ class MainActivity : AppCompatActivity() {
             ): Boolean = false
 
             override fun onPageFinished(view: WebView?, url: String?) {
-                if (splitPaneActive && url != null) {
-                    runOnUiThread { urlInput.setText(url) }
+                if (url == null) return
+                runOnUiThread {
+                    if (splitPaneActive) urlInput.setText(url)
+                    // Fix #6: update bottom title bar
+                    bottomTitleBar.text = domainFrom(url)
                 }
             }
         }
@@ -232,6 +262,64 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    // ════════════════════════════════════════════════════════════
+    // Fix #3: Draggable divider
+    // ════════════════════════════════════════════════════════════
+    private fun setupDividerDrag() {
+        var lastTapTime = 0L
+
+        splitDivider.setOnTouchListener { _, event ->
+            when (event.action) {
+                MotionEvent.ACTION_DOWN -> {
+                    dividerDragStartY = event.rawY
+                    val topParams = topPaneContainer.layoutParams as LinearLayout.LayoutParams
+                    val botParams = bottomPaneContainer.layoutParams as LinearLayout.LayoutParams
+                    topWeightAtDragStart    = topParams.weight
+                    bottomWeightAtDragStart = botParams.weight
+
+                    // Double-tap → snap to 50/50
+                    val now = System.currentTimeMillis()
+                    if (now - lastTapTime < 350) {
+                        snapToEqual()
+                    }
+                    lastTapTime = now
+                    true
+                }
+                MotionEvent.ACTION_MOVE -> {
+                    val totalHeight = (topPaneContainer.height + bottomPaneContainer.height).toFloat()
+                    if (totalHeight == 0f) return@setOnTouchListener true
+                    val delta = event.rawY - dividerDragStartY
+                    val deltaWeight = (delta / totalHeight) * (topWeightAtDragStart + bottomWeightAtDragStart)
+                    val newTop    = (topWeightAtDragStart + deltaWeight).coerceIn(0.2f, 1.8f)
+                    val newBottom = (topWeightAtDragStart + bottomWeightAtDragStart) - newTop
+
+                    val topParams = topPaneContainer.layoutParams as LinearLayout.LayoutParams
+                    topParams.weight = newTop
+                    topPaneContainer.layoutParams = topParams
+
+                    val botParams = bottomPaneContainer.layoutParams as LinearLayout.LayoutParams
+                    botParams.weight = newBottom
+                    bottomPaneContainer.layoutParams = botParams
+                    true
+                }
+                else -> false
+            }
+        }
+    }
+
+    private fun snapToEqual() {
+        val topParams = topPaneContainer.layoutParams as LinearLayout.LayoutParams
+        topParams.weight = 1f
+        topPaneContainer.layoutParams = topParams
+
+        val botParams = bottomPaneContainer.layoutParams as LinearLayout.LayoutParams
+        botParams.weight = 1f
+        bottomPaneContainer.layoutParams = botParams
+    }
+
+    // ════════════════════════════════════════════════════════════
+    // WebView settings helpers
+    // ════════════════════════════════════════════════════════════
     private fun applyThreadSettings(wv: WebView) {
         wv.settings.apply {
             javaScriptEnabled = false
@@ -257,26 +345,24 @@ class MainActivity : AppCompatActivity() {
         isSplitMode = true
         splitPaneActive = false
 
-        splitWebView.visibility = View.VISIBLE
-        splitDivider.visibility = View.VISIBLE
-        exitSplitBtn.visibility = View.VISIBLE
-        splitBtn.visibility     = View.GONE
+        bottomPaneContainer.visibility = View.VISIBLE
+        splitDivider.visibility        = View.VISIBLE
+        exitSplitBtn.visibility        = View.VISIBLE
+        splitBtn.visibility            = View.GONE
+        topTitleBar.visibility         = View.VISIBLE
+        bottomTitleBar.visibility      = View.VISIBLE
 
-        val topParams = topPaneContainer.layoutParams as LinearLayout.LayoutParams
-        topParams.weight = 1f
-        topPaneContainer.layoutParams = topParams
+        snapToEqual()
 
-        val bottomParams = splitWebView.layoutParams as LinearLayout.LayoutParams
-        bottomParams.weight = 1f
-        splitWebView.layoutParams = bottomParams
-
-        // Auto full mode on both panes in split
         applyFullSettings(webView)
         applyFullSettings(splitWebView)
         isFullMode = true
         syncFullModeUI()
 
         splitWebView.loadUrl(DDG_BASE)
+        bottomTitleBar.text = "DuckDuckGo"
+        topTitleBar.text = domainFrom(webView.url ?: "")
+
         setActivePane(false)
     }
 
@@ -286,34 +372,83 @@ class MainActivity : AppCompatActivity() {
 
         splitWebView.stopLoading()
         splitWebView.loadUrl("about:blank")
-        splitWebView.visibility = View.GONE
-        splitDivider.visibility = View.GONE
-        exitSplitBtn.visibility = View.GONE
-        splitBtn.visibility     = View.VISIBLE
+        bottomPaneContainer.visibility = View.GONE
+        splitDivider.visibility        = View.GONE
+        exitSplitBtn.visibility        = View.GONE
+        splitBtn.visibility            = View.VISIBLE
+        topTitleBar.visibility         = View.GONE
+        bottomTitleBar.visibility      = View.GONE
+        splitDimOverlay.visibility     = View.GONE
 
         // Restore thread mode on exit
         applyThreadSettings(webView)
         isFullMode = false
         syncFullModeUI()
 
+        // Restore full mode row
+        topModeRow.visibility = View.VISIBLE
+
         setActivePane(false)
     }
 
+    // Fix #1 + #2: collapse inactive pane header, dim overlay, colored title bars
     private fun setActivePane(bottom: Boolean) {
         splitPaneActive = bottom
 
         if (!isSplitMode) {
             urlInput.setText(tabManager.getActiveTab()?.url ?: "")
+            updatePaneIndicator(false)
             return
         }
 
+        updatePaneIndicator(bottom)
+
         if (bottom) {
+            // Bottom active
             urlInput.setText(splitWebView.url ?: "")
-            splitDivider.setBackgroundColor(Color.parseColor("#8ab8d8"))
+            splitDivider.setBackgroundColor(Color.parseColor(COLOR_BOTTOM_PANE))
+
+            // Collapse top pane header → just title bar
+            topModeRow.visibility = View.GONE
+
+            // Dim top, undim bottom
+            splitDimOverlay.visibility = View.VISIBLE
+
+            // Title bar colors
+            topTitleBar.setBackgroundColor(Color.parseColor("#1a1a1a"))
+            topTitleBar.setTextColor(Color.parseColor("#666666"))
+            bottomTitleBar.setBackgroundColor(Color.parseColor(COLOR_BOTTOM_PANE))
+            bottomTitleBar.setTextColor(Color.parseColor("#0f0f0f"))
+
         } else {
+            // Top active
             urlInput.setText(tabManager.getActiveTab()?.url ?: "")
-            splitDivider.setBackgroundColor(Color.parseColor("#5a9a5a"))
+            splitDivider.setBackgroundColor(Color.parseColor(COLOR_TOP_PANE))
+
+            // Expand top pane header
+            topModeRow.visibility = View.VISIBLE
+
+            // Undim top, dim bottom handled by overlay position
+            splitDimOverlay.visibility = View.GONE
+
+            // Title bar colors
+            topTitleBar.setBackgroundColor(Color.parseColor(COLOR_TOP_PANE))
+            topTitleBar.setTextColor(Color.parseColor("#0f0f0f"))
+            bottomTitleBar.setBackgroundColor(Color.parseColor("#1a1a1a"))
+            bottomTitleBar.setTextColor(Color.parseColor("#666666"))
         }
+    }
+
+    // Fix #4: colored pane indicator next to URL bar
+    private fun updatePaneIndicator(bottomActive: Boolean) {
+        if (!isSplitMode) {
+            paneIndicator.visibility = View.GONE
+            return
+        }
+        paneIndicator.visibility = View.VISIBLE
+        paneIndicator.setBackgroundColor(
+            Color.parseColor(if (bottomActive) COLOR_BOTTOM_PANE else COLOR_TOP_PANE)
+        )
     }
 
     // ════════════════════════════════════════════════════════════
@@ -351,6 +486,18 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ════════════════════════════════════════════════════════════
+    // Fix #5: back navigation per active pane
+    // ════════════════════════════════════════════════════════════
+    override fun onBackPressed() {
+        val active = activeWebView()
+        if (active.canGoBack()) {
+            active.goBack()
+        } else {
+            super.onBackPressed()
+        }
+    }
+
+    // ════════════════════════════════════════════════════════════
     // Buttons
     // ════════════════════════════════════════════════════════════
     private fun setupButtons() {
@@ -360,12 +507,11 @@ class MainActivity : AppCompatActivity() {
             val target = activeWebView()
             if (isFullMode) {
                 applyFullSettings(target)
-                fullBtn.text = getString(R.string.thread_mode)
             } else {
                 applyThreadSettings(target)
                 target.clearCache(true)
-                fullBtn.text = getString(R.string.full_mode)
             }
+            syncFullModeUI()
             target.reload()
         }
 
@@ -379,10 +525,14 @@ class MainActivity : AppCompatActivity() {
         }
 
         imgSearchBtn.setOnClickListener { searchImages() }
-
-        splitBtn.setOnClickListener { enterSplitMode() }
-
+        splitBtn.setOnClickListener    { enterSplitMode() }
         exitSplitBtn.setOnClickListener { exitSplitMode() }
+
+        // Top title bar tap → activate top pane
+        topTitleBar.setOnClickListener { if (isSplitMode) setActivePane(false) }
+
+        // Bottom title bar tap → activate bottom pane
+        bottomTitleBar.setOnClickListener { if (isSplitMode) setActivePane(true) }
 
         jsAllowBtn.setOnClickListener {
             val domain = jsBannerDomain.text.toString()
@@ -454,8 +604,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun extractSearchQuery(url: String): String {
         return try {
-            val uri = android.net.Uri.parse(url)
-            uri.getQueryParameter("q") ?: ""
+            android.net.Uri.parse(url).getQueryParameter("q") ?: ""
         } catch (e: Exception) { "" }
     }
 
@@ -490,7 +639,8 @@ class MainActivity : AppCompatActivity() {
 
         for (tab in tabManager.getTabs()) {
             val pill = TextView(this).apply {
-                text = tab.title.take(16).ifBlank { "New Tab" }
+                // Fix #6: show real title not URL
+                text = tab.title.take(16).ifBlank { domainFrom(tab.url) }
                 textSize = 11f
                 setTextColor(Color.parseColor("#c8bfaf"))
                 setPadding(24, 12, 24, 12)
@@ -539,42 +689,35 @@ class MainActivity : AppCompatActivity() {
                 gravity = android.view.Gravity.CENTER_VERTICAL
             }
 
-            val thumb = tab.thumbnail
-            if (thumb != null) {
-                val iv = android.widget.ImageView(this).apply {
+            tab.thumbnail?.let { thumb ->
+                card.addView(android.widget.ImageView(this).apply {
                     setImageBitmap(thumb)
                     layoutParams = LinearLayout.LayoutParams(120, 80).apply { marginEnd = 12 }
                     scaleType = android.widget.ImageView.ScaleType.CENTER_CROP
-                }
-                card.addView(iv)
+                })
             }
 
-            val title = TextView(this).apply {
+            card.addView(TextView(this).apply {
                 text = tab.title.ifBlank { tab.url }
                 textSize = 12f
                 setTextColor(Color.parseColor("#f0ead6"))
-                layoutParams = LinearLayout.LayoutParams(
-                    0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f
-                )
-            }
-            card.addView(title)
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            })
 
-            val closeBtn = TextView(this).apply {
+            card.addView(TextView(this).apply {
                 text = "✕"
                 textSize = 14f
                 setTextColor(Color.parseColor("#c8bfaf"))
                 setPadding(12, 0, 0, 0)
                 setOnClickListener { closeTab(tab.id) }
-            }
-            card.addView(closeBtn)
+            })
 
             card.setOnClickListener { switchToTab(tab.id) }
 
-            val lp = LinearLayout.LayoutParams(
+            list.addView(card, LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply { bottomMargin = 8 }
-            list.addView(card, lp)
+            ).apply { bottomMargin = 8 })
         }
 
         scroll.addView(list)
@@ -591,13 +734,8 @@ class MainActivity : AppCompatActivity() {
             Toast.makeText(this, "Oldest tab closed", Toast.LENGTH_SHORT).show()
         }
         val target = activeWebView()
-        if (isSplitMode) {
-            applyFullSettings(target)
-        } else {
-            applyThreadSettings(target)
-            isFullMode = false
-            syncFullModeUI()
-        }
+        if (isSplitMode) applyFullSettings(target) else { applyThreadSettings(target); isFullMode = false }
+        syncFullModeUI()
         target.loadUrl(DDG_BASE)
         renderTabStrip()
         tabOverlay.visibility = View.GONE
@@ -607,13 +745,8 @@ class MainActivity : AppCompatActivity() {
         captureActivePane()
         val tab = tabManager.switchToTab(id) ?: return
         val target = activeWebView()
-        if (isSplitMode) {
-            applyFullSettings(target)
-        } else {
-            applyThreadSettings(target)
-            isFullMode = false
-            syncFullModeUI()
-        }
+        if (isSplitMode) applyFullSettings(target) else { applyThreadSettings(target); isFullMode = false }
+        syncFullModeUI()
         target.loadUrl(tab.url)
         urlInput.setText(tab.url)
         renderTabStrip()
@@ -638,7 +771,6 @@ class MainActivity : AppCompatActivity() {
     // ════════════════════════════════════════════════════════════
     // Helpers
     // ════════════════════════════════════════════════════════════
-
     private fun activeWebView(): WebView =
         if (isSplitMode && splitPaneActive) splitWebView else webView
 
@@ -651,9 +783,15 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun syncFullModeUI() {
-        fullBtn.text = if (isFullMode) getString(R.string.thread_mode) else getString(R.string.full_mode)
+        fullBtn.text = if (isFullMode) "← Thread" else getString(R.string.full_mode)
         webView.settings.javaScriptEnabled = isFullMode
         webView.settings.loadsImagesAutomatically = isFullMode
         webView.settings.blockNetworkImage = !isFullMode
+    }
+
+    private fun domainFrom(url: String): String {
+        return try {
+            android.net.Uri.parse(url).host?.removePrefix("www.") ?: url
+        } catch (e: Exception) { url }
     }
 }

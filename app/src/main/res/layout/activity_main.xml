@@ -14,13 +14,29 @@
         android:layout_weight="1"
         android:orientation="vertical">
 
-        <!-- TOP PANE (always visible) -->
+        <!-- TOP PANE -->
         <LinearLayout
             android:id="@+id/topPaneContainer"
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
             android:orientation="vertical">
+
+            <!-- Top pane title bar (split mode only) -->
+            <TextView
+                android:id="@+id/topTitleBar"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="#0f0f0f"
+                android:textSize="11sp"
+                android:paddingStart="10dp"
+                android:paddingEnd="10dp"
+                android:paddingTop="4dp"
+                android:paddingBottom="4dp"
+                android:gravity="center_vertical"
+                android:singleLine="true"
+                android:ellipsize="end"
+                android:visibility="gone" />
 
             <!-- Thread mode badge row -->
             <LinearLayout
@@ -59,7 +75,8 @@
                     android:layout_marginStart="8dp"
                     android:background="@drawable/bg_full_btn" />
 
-                <View android:layout_width="0dp"
+                <View
+                    android:layout_width="0dp"
                     android:layout_height="1dp"
                     android:layout_weight="1" />
 
@@ -198,30 +215,70 @@
                 android:background="#8b0000"
                 android:visibility="gone" />
 
-            <!-- Top WebView -->
+            <!-- Top WebView — wrapped in FrameLayout for dim overlay -->
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1">
+
+                <WebView
+                    android:id="@+id/webView"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent" />
+
+                <!-- Dim overlay for inactive top pane -->
+                <View
+                    android:id="@+id/splitDimOverlay"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="#26000000"
+                    android:visibility="gone" />
+
+            </FrameLayout>
+
+        </LinearLayout>
+
+        <!-- SPLIT DIVIDER (draggable) -->
+        <View
+            android:id="@+id/splitDivider"
+            android:layout_width="match_parent"
+            android:layout_height="6dp"
+            android:background="#5a9a5a"
+            android:visibility="gone" />
+
+        <!-- BOTTOM PANE -->
+        <LinearLayout
+            android:id="@+id/bottomPaneContainer"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <!-- Bottom pane title bar -->
+            <TextView
+                android:id="@+id/bottomTitleBar"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="#0f0f0f"
+                android:textSize="11sp"
+                android:paddingStart="10dp"
+                android:paddingEnd="10dp"
+                android:paddingTop="4dp"
+                android:paddingBottom="4dp"
+                android:gravity="center_vertical"
+                android:singleLine="true"
+                android:ellipsize="end"
+                android:background="#1a1a1a"
+                android:visibility="gone" />
+
             <WebView
-                android:id="@+id/webView"
+                android:id="@+id/splitWebView"
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
                 android:layout_weight="1" />
 
         </LinearLayout>
-
-        <!-- SPLIT DIVIDER (hidden by default) -->
-        <View
-            android:id="@+id/splitDivider"
-            android:layout_width="match_parent"
-            android:layout_height="3dp"
-            android:background="#5a9a5a"
-            android:visibility="gone" />
-
-        <!-- BOTTOM PANE (hidden by default) -->
-        <WebView
-            android:id="@+id/splitWebView"
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            android:visibility="gone" />
 
     </LinearLayout>
 
@@ -282,6 +339,15 @@
                 android:paddingBottom="6dp"
                 android:background="@drawable/bg_tab_pill_active" />
 
+            <!-- Fix #4: pane indicator dot -->
+            <View
+                android:id="@+id/paneIndicator"
+                android:layout_width="6dp"
+                android:layout_height="24dp"
+                android:layout_marginStart="6dp"
+                android:background="#5a9a5a"
+                android:visibility="gone" />
+
             <EditText
                 android:id="@+id/urlInput"
                 android:layout_width="0dp"
@@ -333,7 +399,7 @@
 
         </LinearLayout>
 
-        <!-- Exit split row (hidden by default) -->
+        <!-- Exit split row -->
         <TextView
             android:id="@+id/exitSplitBtn"
             android:layout_width="match_parent"
@@ -359,4 +425,3 @@
         android:visibility="gone" />
 
 </LinearLayout>
-
