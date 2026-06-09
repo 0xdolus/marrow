@@ -52,6 +52,11 @@ class MainActivity : AppCompatActivity() {
     private var topWeightAtDragStart = 1f
     private var bottomWeightAtDragStart = 1f
 
+    // ── Fullscreen video ─────────────────────────────────────────
+    private var customView: View? = null
+    private var customViewCallback: WebChromeClient.CustomViewCallback? = null
+    private lateinit var fullscreenContainer: FrameLayout
+
     // ── Tab + memory ─────────────────────────────────────────────
     private lateinit var tabManager: TabManager
     private lateinit var memoryMonitor: MemoryMonitor
@@ -71,6 +76,17 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        fullscreenContainer = FrameLayout(this).apply {
+            visibility = View.GONE
+        }
+        addContentView(
+            fullscreenContainer,
+            FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT
+            )
+        )
 
         bindViews()
         setupTabManager()
@@ -174,6 +190,26 @@ class MainActivity : AppCompatActivity() {
                     loadingBar.progress = newProgress
                 }
             }
+
+            override fun onShowCustomView(view: View, callback: CustomViewCallback) {
+                customView = view
+                customViewCallback = callback
+                fullscreenContainer.addView(view)
+                fullscreenContainer.visibility = View.VISIBLE
+                window.decorView.systemUiVisibility =
+                    View.SYSTEM_UI_FLAG_FULLSCREEN or
+                    View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
+                    View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+            }
+
+            override fun onHideCustomView() {
+                fullscreenContainer.removeAllViews()
+                fullscreenContainer.visibility = View.GONE
+                window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_VISIBLE
+                customViewCallback?.onCustomViewHidden()
+                customView = null
+                customViewCallback = null
+            }
         }
 
         applyFullSettings(webView)
@@ -212,6 +248,26 @@ class MainActivity : AppCompatActivity() {
                     loadingBar.visibility = if (newProgress < 100) View.VISIBLE else View.INVISIBLE
                     loadingBar.progress = newProgress
                 }
+            }
+
+            override fun onShowCustomView(view: View, callback: CustomViewCallback) {
+                customView = view
+                customViewCallback = callback
+                fullscreenContainer.addView(view)
+                fullscreenContainer.visibility = View.VISIBLE
+                window.decorView.systemUiVisibility =
+                    View.SYSTEM_UI_FLAG_FULLSCREEN or
+                    View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
+                    View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+            }
+
+            override fun onHideCustomView() {
+                fullscreenContainer.removeAllViews()
+                fullscreenContainer.visibility = View.GONE
+                window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_VISIBLE
+                customViewCallback?.onCustomViewHidden()
+                customView = null
+                customViewCallback = null
             }
         }
 
@@ -282,6 +338,8 @@ class MainActivity : AppCompatActivity() {
             blockNetworkImage = false
             loadsImagesAutomatically = true
             cacheMode = WebSettings.LOAD_DEFAULT
+            mediaPlaybackRequiresUserGesture = false
+            domStorageEnabled = true
         }
     }
 
@@ -378,7 +436,6 @@ class MainActivity : AppCompatActivity() {
     // URL bar
     // ════════════════════════════════════════════════════════════
     private fun setupUrlBar() {
-        // Show real URL when focused for editing, domain/title when not
         urlInput.setOnFocusChangeListener { _, hasFocus ->
             if (hasFocus) {
                 val realUrl = if (isSplitMode && splitPaneActive)
@@ -428,9 +485,14 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ════════════════════════════════════════════════════════════
-    // Back navigation — per active pane
+    // Back navigation
     // ════════════════════════════════════════════════════════════
     override fun onBackPressed() {
+        if (customView != null) {
+            // Exit fullscreen video first
+            webView.webChromeClient?.onHideCustomView()
+            return
+        }
         val active = activeWebView()
         if (active.canGoBack()) {
             active.goBack()
