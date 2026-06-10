@@ -270,6 +270,13 @@
     </LinearLayout>
 
     <!-- Tab overlay -->
+    <!-- Hidden container for popup dummy WebView; 0x0 so it's invisible -->
+    <FrameLayout
+        android:id="@+id/dummyWebViewContainer"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:visibility="gone" />
+
     <FrameLayout
         android:id="@+id/tabOverlay"
         android:layout_width="match_parent"

@@ -17,7 +17,7 @@
         android:usesCleartextTraffic="false">
 
         <activity android:name=".MainActivity"
-            android:exported="false"
+            android:exported="true"
             android:hardwareAccelerated="true" />
 
         <activity

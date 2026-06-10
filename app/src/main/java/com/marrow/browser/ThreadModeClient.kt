@@ -7,12 +7,9 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
 
-class ThreadModeClient(
-    private val onJsRequested: (domain: String) -> Unit = {}
-) : WebViewClient() {
+class ThreadModeClient : WebViewClient() {
 
     var onPageLoaded: ((url: String) -> Unit)? = null
-    var onCloudflareDetected: ((domain: String) -> Unit)? = null
 
     companion object {
         // Schemes that must never be handed to a third-party app or executed inline.
@@ -51,11 +48,4 @@ class ThreadModeClient(
     override fun onPageStarted(view: WebView, url: String, favicon: Bitmap?) {
         // no-op — kept for future use
     }
-
-    // ── Stubs: kept so MainActivity compiles without changes ───────────────────
-    fun allowAlways(domain: String) {}
-    fun allowOnce(domain: String) {}
-    fun blockAllJsForPage() {}
-    fun setCfBypass(domain: String) {}
-    fun loadAllowedAlways(domains: Set<String>) {}
 }

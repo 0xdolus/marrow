@@ -11,6 +11,7 @@ import androidx.appcompat.app.AppCompatActivity
 class SplashActivity : AppCompatActivity() {
 
     private lateinit var container: LinearLayout
+    private var prewarmWebView: WebView? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -22,15 +23,22 @@ class SplashActivity : AppCompatActivity() {
         container.alpha = 0f
         container.animate().alpha(1f).setDuration(300).start()
 
-        // Pre-warm WebView in background — fire and forget
+        // Pre-warm WebView in background
         try {
-            val wv = WebView(applicationContext)
-            wv.settings.javaScriptEnabled = true
-            wv.loadUrl("about:blank")
+            prewarmWebView = WebView(applicationContext).also {
+                it.settings.javaScriptEnabled = true
+                it.loadUrl("about:blank")
+            }
         } catch (_: Exception) {}
 
         // Launch after fixed delay — don't wait for WebView
         container.postDelayed({ launch() }, 1200)
+    }
+
+    override fun onDestroy() {
+        prewarmWebView?.destroy()
+        prewarmWebView = null
+        super.onDestroy()
     }
 
     private fun launch() {
