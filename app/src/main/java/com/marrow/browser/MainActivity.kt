@@ -179,6 +179,9 @@ class MainActivity : AppCompatActivity() {
         tabManager.updateActiveTitle(title)
         webView.loadUrl(url)
         urlInput.setText(title.takeIf { it.isNotBlank() } ?: url)
+        // Without this call the tab strip keeps showing the stale HOME tab
+        // created by setupTabManager() rather than the restored tab's title/URL.
+        renderTabStrip()
     }
 
     // ════════════════════════════════════════════════════════════
@@ -591,7 +594,9 @@ class MainActivity : AppCompatActivity() {
         Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
         // Reload active page so new settings take effect immediately
         activeWebView().reload()
-        // Refresh pip dot appearance
+        // Refresh pip dot appearance. stop() first to prevent a second concurrent
+        // poll loop accumulating on every subsequent privacy-mode toggle.
+        memoryMonitor.stop()
         memoryMonitor.start()
     }
 
@@ -736,7 +741,9 @@ class MainActivity : AppCompatActivity() {
 
     private fun normalizeUrl(input: String): String {
         if (input.startsWith("http://") || input.startsWith("https://")) return input
-        if (input.startsWith("file://")) return input
+        // Intentionally NOT passing file:// through — loadUrl() bypasses the
+        // shouldOverrideUrlLoading() file-scheme block, so we treat it as a
+        // plain search term instead to prevent local file disclosure.
         val tldRegex = Regex("^[^\\s.]+\\.[a-zA-Z]{2,}(\\.[a-zA-Z]{2,})?(/.*)?$")
         if (!input.contains(" ") && tldRegex.matches(input)) return "https://$input"
         return DDG_BASE + URLEncoder.encode(input, "UTF-8")
@@ -978,7 +985,8 @@ class MainActivity : AppCompatActivity() {
         if (result.oldestClosed) {
             Toast.makeText(this, "Tab limit reached — oldest tab closed", Toast.LENGTH_SHORT).show()
         }
-        activeWebView().loadUrl(HOME)
+        // Tabs always belong to the main webView, not the split pane.
+        webView.loadUrl(HOME)
         renderTabStrip()
         tabOverlay.visibility = View.GONE
     }
@@ -986,8 +994,9 @@ class MainActivity : AppCompatActivity() {
     private fun switchToTab(id: Int) {
         captureActivePane()
         val tab = tabManager.switchToTab(id) ?: return
-        val target = activeWebView()
-        target.loadUrl(tab.url)
+        // Tabs always belong to the main webView; activeWebView() would wrongly
+        // target splitWebView when the bottom pane is focused.
+        webView.loadUrl(tab.url)
         urlInput.setText(if (tab.url == HOME) "marrow" else tab.title.takeIf { it.isNotBlank() } ?: "")
         renderTabStrip()
         tabOverlay.visibility = View.GONE
@@ -1022,16 +1031,18 @@ class MainActivity : AppCompatActivity() {
         val wv = activeWebView()
         val w = wv.width.takeIf  { it > 0 } ?: return
         val h = wv.height.takeIf { it > 0 } ?: return
-        Thread {
+        // Draw and save the thumbnail entirely on the UI thread so the bitmap
+        // is fully populated before it is handed to the tab manager.
+        runOnUiThread {
             try {
                 val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
                 val canvas = android.graphics.Canvas(bmp)
-                runOnUiThread { wv.draw(canvas) }
+                wv.draw(canvas)
                 tabManager.updateActiveThumbnail(bmp)
             } catch (e: Exception) {
                 // Skip thumbnail if capture fails
             }
-        }.start()
+        }
     }
 
     private fun domainFrom(url: String): String {
