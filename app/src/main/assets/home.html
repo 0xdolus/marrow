@@ -141,6 +141,7 @@
     } else if (val.includes('.') && !val.includes(' ')) {
       window.location.href = 'https://' + val;
     } else {
+      // Search via Yandex
       window.location.href = 'https://yandex.com/search/?text=' +
         encodeURIComponent(val);
     }

@@ -1,18 +1,23 @@
 package com.marrow.browser
 
+import android.app.DownloadManager
 import android.content.Context
-import android.graphics.Color
 import android.graphics.Bitmap
+import android.graphics.Color
 import android.os.Bundle
+import android.os.Message
 import android.view.MotionEvent
 import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
+import android.webkit.CookieManager
+import android.webkit.URLUtil
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
+import android.webkit.WebSettings
+import android.webkit.WebStorage
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import android.webkit.WebSettings
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import java.net.URLEncoder
@@ -62,12 +67,44 @@ class MainActivity : AppCompatActivity() {
     private lateinit var memoryMonitor: MemoryMonitor
     private lateinit var threadClient: ThreadModeClient
 
+    // ── Popup redirect system ─────────────────────────────────────
+    // dummyWebView is never attached to the layout; it is used purely
+    // to receive and inspect window.open() navigation chains.
+    private var dummyWebView: WebView? = null
+
+    // ── Privacy mode ─────────────────────────────────────────────
+    // Toggle with a long-press on the tab-count button.
+    // When active: no-cache, no history, cleared on exit.
+    private var privacyModeActive = false
+
     companion object {
         const val HOME              = "file:///android_asset/home.html"
         const val DDG_BASE          = "https://yandex.com/search/?text="
         const val DDG_IMAGE_BASE    = "https://yandex.com/images/search?text="
         const val COLOR_TOP_PANE    = "#5a9a5a"
         const val COLOR_BOTTOM_PANE = "#8ab8d8"
+        const val COLOR_PRIVACY     = "#4a7fbf"   // blue pip when privacy mode on
+
+        // Video file extensions and known player/embed domains
+        private val VIDEO_EXTENSIONS = listOf(".mp4", ".m3u8", ".webm", ".mkv", ".ts", ".flv")
+        private val VIDEO_DOMAINS    = listOf(
+            "streamtape.com", "doodstream.com", "vidcloud", "streamlare.com",
+            "fembed.com", "upstream.to", "mixdrop.co", "filemoon.sx",
+            "embedsito.com", "voe.sx", "vidsrc", "embedrise.com",
+            "vidhide.com", "streamwish.com", "bestx.stream", "swdyu.com"
+        )
+
+        // Domains known to be ad networks / trackers — popups to these are dropped
+        private val AD_DOMAINS = listOf(
+            "doubleclick.net", "googlesyndication.com", "adservice.google",
+            "adnxs.com", "amazon-adsystem.com", "popads.net", "popcash.net",
+            "propellerads.com", "taboola.com", "outbrain.com", "revcontent.com",
+            "trafficjunky.com", "exoclick.com", "juicyads.com", "trafficforce.com",
+            "adsterra.com", "hilltopads.net", "plugrush.com", "tsyndicate.com"
+        )
+
+        // Regex for safe hex color values from theme-color meta tags
+        private val HEX_COLOR_RE = Regex("^#[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$")
     }
 
     // ════════════════════════════════════════════════════════════
@@ -98,6 +135,25 @@ class MainActivity : AppCompatActivity() {
         setupButtons()
 
         navigateTo(HOME, webView)
+    }
+
+    // ════════════════════════════════════════════════════════════
+    // onDestroy — privacy cleanup
+    // ════════════════════════════════════════════════════════════
+    override fun onDestroy() {
+        if (privacyModeActive) {
+            webView.clearCache(true)
+            webView.clearFormData()
+            webView.clearHistory()
+            splitWebView.clearCache(true)
+            splitWebView.clearFormData()
+            splitWebView.clearHistory()
+            CookieManager.getInstance().removeAllCookies(null)
+            WebStorage.getInstance().deleteAllData()
+        }
+        dummyWebView?.destroy()
+        dummyWebView = null
+        super.onDestroy()
     }
 
     // ════════════════════════════════════════════════════════════
@@ -147,6 +203,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updatePip(level: MemoryMonitor.Level) {
+        // Privacy mode overrides the pip color to blue
+        if (privacyModeActive) {
+            pipDot.background.setTint(Color.parseColor(COLOR_PRIVACY))
+            memBanner.visibility = View.GONE
+            return
+        }
         val color = when (level) {
             MemoryMonitor.Level.GREEN  -> "#5a9a5a"
             MemoryMonitor.Level.YELLOW -> "#c8a840"
@@ -172,6 +234,7 @@ class MainActivity : AppCompatActivity() {
 
         threadClient.onPageLoaded = { url ->
             runOnUiThread {
+                if (privacyModeActive) webView.clearHistory()
                 if (!splitPaneActive) urlInput.setText(if (url == HOME) "marrow" else (webView.title?.takeIf { it.isNotBlank() } ?: ""))
                 val title = webView.title ?: ""
                 tabManager.updateActiveTitle(title)
@@ -191,6 +254,18 @@ class MainActivity : AppCompatActivity() {
                 }
             }
 
+            // ── Popup / redirect tab handling ──────────────────────────
+            override fun onCreateWindow(
+                view: WebView,
+                isDialog: Boolean,
+                isUserGesture: Boolean,
+                resultMsg: Message
+            ): Boolean {
+                handlePopupWindow(resultMsg)
+                return true
+            }
+
+            // ── Fullscreen video ───────────────────────────────────────
             override fun onShowCustomView(view: View, callback: CustomViewCallback) {
                 customView = view
                 customViewCallback = callback
@@ -219,6 +294,115 @@ class MainActivity : AppCompatActivity() {
             if (isSplitMode && splitPaneActive) setActivePane(false)
             false
         }
+
+        setupDownloadListener()
+    }
+
+    // ════════════════════════════════════════════════════════════
+    // Download listener
+    // ════════════════════════════════════════════════════════════
+    private fun setupDownloadListener() {
+        webView.setDownloadListener { url, userAgent, contentDisposition, mimeType, _ ->
+            try {
+                val cookies = CookieManager.getInstance().getCookie(url) ?: ""
+                val fileName = URLUtil.guessFileName(url, contentDisposition, mimeType)
+
+                val request = DownloadManager.Request(android.net.Uri.parse(url)).apply {
+                    setMimeType(mimeType)
+                    if (cookies.isNotBlank()) addRequestHeader("Cookie", cookies)
+                    addRequestHeader("User-Agent", userAgent)
+                    setTitle(fileName)
+                    setDescription("Downloading…")
+                    setNotificationVisibility(
+                        DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED
+                    )
+                    setDestinationInExternalPublicDir(
+                        android.os.Environment.DIRECTORY_DOWNLOADS,
+                        fileName
+                    )
+                }
+
+                val dm = getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+                dm.enqueue(request)
+                Toast.makeText(this, "Download started: $fileName", Toast.LENGTH_SHORT).show()
+            } catch (e: Exception) {
+                Toast.makeText(this, "Download failed: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    // ════════════════════════════════════════════════════════════
+    // Popup / redirect tab system
+    // ════════════════════════════════════════════════════════════
+    /**
+     * Called when a page calls window.open(). We route the popup through a
+     * detached dummy WebView, inspect each URL it navigates to, and either:
+     *   • promote it to the main WebView if it looks like a video/player URL
+     *   • drop it silently if it matches a known ad/tracker domain
+     *   • otherwise track it in the visible redirect tab so the user can see
+     *     where the chain leads and tap into it if they want
+     */
+    private fun handlePopupWindow(resultMsg: Message) {
+        // Tear down any previous dummy
+        dummyWebView?.destroy()
+
+        val dummy = WebView(this).also { dummyWebView = it }
+        applyFullSettings(dummy)
+
+        dummy.webViewClient = object : WebViewClient() {
+            override fun shouldOverrideUrlLoading(
+                view: WebView,
+                request: WebResourceRequest
+            ): Boolean {
+                val url    = request.url.toString()
+                val scheme = request.url.scheme?.lowercase() ?: return true
+
+                // Hard-block dangerous schemes
+                if (scheme == "intent" || scheme == "market") return true
+
+                // Drop ad/tracker URLs silently
+                if (isAdUrl(url)) return true
+
+                // Promote video URLs to the main WebView
+                if (isVideoUrl(url)) {
+                    runOnUiThread {
+                        tabManager.closeRedirectTab()
+                        dummyWebView?.destroy()
+                        dummyWebView = null
+                        navigateTo(url, webView)
+                        renderTabStrip()
+                    }
+                    return true
+                }
+
+                // Otherwise: update the redirect tab to reflect the latest destination
+                runOnUiThread {
+                    tabManager.updateRedirectTabUrl(url)
+                    renderTabStrip()
+                }
+                return false
+            }
+        }
+
+        // Create (or reuse) the redirect tab so it's visible in the strip
+        tabManager.openOrGetRedirectTab("about:blank")
+        renderTabStrip()
+
+        // Hand the dummy WebView to the site as its popup container
+        val transport = resultMsg.obj as? WebView.WebViewTransport
+        transport?.webView = dummy
+        resultMsg.sendToTarget()
+    }
+
+    private fun isVideoUrl(url: String): Boolean {
+        val lower = url.lowercase()
+        return VIDEO_EXTENSIONS.any { lower.contains(it) } ||
+               VIDEO_DOMAINS.any    { lower.contains(it) }
+    }
+
+    private fun isAdUrl(url: String): Boolean {
+        val lower = url.lowercase()
+        return AD_DOMAINS.any { lower.contains(it) }
     }
 
     // ════════════════════════════════════════════════════════════
@@ -231,10 +415,16 @@ class MainActivity : AppCompatActivity() {
             override fun shouldOverrideUrlLoading(
                 view: WebView?,
                 request: WebResourceRequest?
-            ): Boolean = false
+            ): Boolean {
+                val scheme = request?.url?.scheme?.lowercase() ?: return false
+                if (scheme == "intent" || scheme == "market" ||
+                    scheme == "javascript" || scheme == "file") return true
+                return false
+            }
 
             override fun onPageFinished(view: WebView?, url: String?) {
                 if (url == null) return
+                if (privacyModeActive) view?.clearHistory()
                 runOnUiThread {
                     if (splitPaneActive) urlInput.setText("")
                     bottomTitleBar.text = domainFrom(url)
@@ -330,17 +520,50 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ════════════════════════════════════════════════════════════
-    // WebView settings
+    // WebView settings — applied to every WebView instance
     // ════════════════════════════════════════════════════════════
     private fun applyFullSettings(wv: WebView) {
         wv.settings.apply {
-            javaScriptEnabled = true
-            blockNetworkImage = false
-            loadsImagesAutomatically = true
-            cacheMode = WebSettings.LOAD_DEFAULT
-            mediaPlaybackRequiresUserGesture = false
-            domStorageEnabled = true
+            javaScriptEnabled                = true
+            blockNetworkImage                = false
+            loadsImagesAutomatically         = true
+            domStorageEnabled                = true
+
+            // ── Security fixes ──────────────────────────────────
+            mediaPlaybackRequiresUserGesture = true   // prevent autoplaying media
+            @Suppress("DEPRECATION")
+            setSafeBrowsingEnabled(true)              // Google Safe Browsing
+            mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
+
+            // ── Privacy mode adjustments ─────────────────────────
+            cacheMode = if (privacyModeActive)
+                WebSettings.LOAD_NO_CACHE
+            else
+                WebSettings.LOAD_DEFAULT
+            if (privacyModeActive) setGeolocationEnabled(false)
         }
+    }
+
+    // ════════════════════════════════════════════════════════════
+    // Privacy mode toggle
+    // ════════════════════════════════════════════════════════════
+    private fun togglePrivacyMode() {
+        privacyModeActive = !privacyModeActive
+        applyFullSettings(webView)
+        applyFullSettings(splitWebView)
+        // Immediately clear history/cache when turning on
+        if (privacyModeActive) {
+            webView.clearHistory()
+            webView.clearCache(true)
+            webView.clearFormData()
+        }
+        val msg = if (privacyModeActive)
+            "🔒 Privacy mode ON — no history or cache"
+        else
+            "Privacy mode OFF"
+        Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
+        // Refresh pip dot appearance
+        memoryMonitor.start()
     }
 
     // ════════════════════════════════════════════════════════════
@@ -369,6 +592,12 @@ class MainActivity : AppCompatActivity() {
     private fun exitSplitMode() {
         isSplitMode = false
         splitPaneActive = false
+
+        if (privacyModeActive) {
+            splitWebView.clearCache(true)
+            splitWebView.clearFormData()
+            splitWebView.clearHistory()
+        }
 
         splitWebView.stopLoading()
         splitWebView.loadUrl("about:blank")
@@ -489,7 +718,6 @@ class MainActivity : AppCompatActivity() {
     // ════════════════════════════════════════════════════════════
     override fun onBackPressed() {
         if (customView != null) {
-            // Exit fullscreen video first
             webView.webChromeClient?.onHideCustomView()
             return
         }
@@ -512,6 +740,11 @@ class MainActivity : AppCompatActivity() {
                 renderTabOverlay()
                 tabOverlay.visibility = View.VISIBLE
             }
+        }
+        // Long-press tab count button → toggle privacy mode
+        tabCountBtn.setOnLongClickListener {
+            togglePrivacyMode()
+            true
         }
 
         imgSearchBtn.setOnClickListener { searchImages() }
@@ -541,7 +774,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ════════════════════════════════════════════════════════════
-    // Theme color
+    // Theme color — sanitised to prevent injection via meta tag
     // ════════════════════════════════════════════════════════════
     private fun readThemeColor() {
         webView.evaluateJavascript(
@@ -550,14 +783,12 @@ class MainActivity : AppCompatActivity() {
         ) { value ->
             val raw = value?.trim('"') ?: ""
             runOnUiThread {
-                try {
-                    chromeBg.setBackgroundColor(
-                        if (raw.startsWith("#")) Color.parseColor(raw)
-                        else Color.parseColor("#0f0f0f")
-                    )
-                } catch (e: Exception) {
-                    chromeBg.setBackgroundColor(Color.parseColor("#0f0f0f"))
+                val safeColor = if (HEX_COLOR_RE.matches(raw)) {
+                    try { Color.parseColor(raw) } catch (e: Exception) { Color.parseColor("#0f0f0f") }
+                } else {
+                    Color.parseColor("#0f0f0f")
                 }
+                chromeBg.setBackgroundColor(safeColor)
             }
         }
     }
@@ -567,17 +798,27 @@ class MainActivity : AppCompatActivity() {
     // ════════════════════════════════════════════════════════════
     private fun renderTabStrip() {
         tabStripInner.removeAllViews()
-        tabCountBtn.text = tabManager.getTabs().size.toString()
+        val userTabs    = tabManager.getUserTabs()
+        val redirectTab = tabManager.getRedirectTab()
+        val displayTabs = tabManager.getTabs()   // includes redirect tab if present
 
-        for (tab in tabManager.getTabs()) {
+        // Tab count shows only user tabs
+        tabCountBtn.text = userTabs.size.toString()
+
+        for (tab in displayTabs) {
+            val label = when {
+                tab.isRedirectTab      -> "⇄"
+                tab.url == HOME        -> "home"
+                tab.title.isNotBlank() -> tab.title.take(16)
+                else                   -> domainFrom(tab.url)
+            }
             val pill = TextView(this).apply {
-                text = when {
-                    tab.url == HOME        -> "home"
-                    tab.title.isNotBlank() -> tab.title.take(16)
-                    else                   -> domainFrom(tab.url)
-                }
+                text = label
                 textSize = 11f
-                setTextColor(Color.parseColor("#c8bfaf"))
+                setTextColor(
+                    if (tab.isRedirectTab) Color.parseColor("#c8a840")
+                    else                   Color.parseColor("#c8bfaf")
+                )
                 setPadding(24, 12, 24, 12)
                 background = if (tab.id == tabManager.activeTabId)
                     getDrawable(R.drawable.bg_tab_pill_active)
@@ -592,7 +833,7 @@ class MainActivity : AppCompatActivity() {
             tabStripInner.addView(pill, lp)
         }
 
-        val atLimit = tabManager.getTabs().size >= 4
+        val atLimit = userTabs.size >= TabManager.MAX_TABS
         val addBtn = TextView(this).apply {
             text = if (atLimit) "4/4" else "+"
             textSize = if (atLimit) 10f else 16f
@@ -601,9 +842,11 @@ class MainActivity : AppCompatActivity() {
             background = getDrawable(R.drawable.bg_tab_pill)
             setOnClickListener {
                 if (atLimit) {
-                    Toast.makeText(this@MainActivity,
+                    Toast.makeText(
+                        this@MainActivity,
                         "Tab limit reached — close a tab first",
-                        Toast.LENGTH_SHORT).show()
+                        Toast.LENGTH_SHORT
+                    ).show()
                 } else {
                     openNewTab()
                 }
@@ -643,12 +886,16 @@ class MainActivity : AppCompatActivity() {
 
             card.addView(TextView(this).apply {
                 text = when {
+                    tab.isRedirectTab      -> "⇄ redirect  —  ${tab.url.take(40)}"
                     tab.url == HOME        -> "marrow home"
                     tab.title.isNotBlank() -> tab.title
                     else                   -> tab.url
                 }
                 textSize = 12f
-                setTextColor(Color.parseColor("#f0ead6"))
+                setTextColor(
+                    if (tab.isRedirectTab) Color.parseColor("#c8a840")
+                    else                   Color.parseColor("#f0ead6")
+                )
                 layoutParams = LinearLayout.LayoutParams(
                     0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f
                 )
@@ -702,6 +949,15 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun closeTab(id: Int) {
+        // If closing the redirect tab, also destroy the dummy WebView
+        if (tabManager.getRedirectTab()?.id == id) {
+            dummyWebView?.destroy()
+            dummyWebView = null
+        }
+        if (privacyModeActive) {
+            webView.clearCache(true)
+            webView.clearFormData()
+        }
         val next = tabManager.closeTab(id)
         val target = activeWebView()
         if (next != null) {
@@ -725,7 +981,7 @@ class MainActivity : AppCompatActivity() {
         val wv = activeWebView()
         try {
             val bmp = Bitmap.createBitmap(
-                wv.width.takeIf { it > 0 } ?: 1,
+                wv.width.takeIf  { it > 0 } ?: 1,
                 wv.height.takeIf { it > 0 } ?: 1,
                 Bitmap.Config.ARGB_8888
             )
