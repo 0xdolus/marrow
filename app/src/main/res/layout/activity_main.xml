@@ -234,6 +234,20 @@
                 android:layout_marginStart="6dp"
                 android:background="@drawable/bg_tab_pill" />
 
+            <!-- Wake lock button -->
+            <TextView
+                android:id="@+id/wakeLockBtn"
+                android:layout_width="40dp"
+                android:layout_height="wrap_content"
+                android:text="&#x1F513;"
+                android:textColor="#c8bfaf"
+                android:textSize="14sp"
+                android:gravity="center"
+                android:paddingTop="6dp"
+                android:paddingBottom="6dp"
+                android:layout_marginStart="6dp"
+                android:background="@drawable/bg_tab_pill" />
+
             <!-- Split button -->
             <TextView
                 android:id="@+id/splitBtn"
