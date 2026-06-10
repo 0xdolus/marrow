@@ -6,7 +6,6 @@ import android.graphics.Bitmap
 import android.graphics.Color
 import android.os.Bundle
 import android.os.Message
-import android.os.PowerManager
 import android.view.MotionEvent
 import android.view.View
 import android.view.inputmethod.EditorInfo
@@ -78,10 +77,6 @@ class MainActivity : AppCompatActivity() {
     // When active: no-cache, no history, cleared on exit.
     private var privacyModeActive = false
 
-    // ── Wake lock ─────────────────────────────────────────────
-    private var wakeLock: PowerManager.WakeLock? = null
-    private var wakeLockActive = false
-    private lateinit var wakeLockBtn: TextView
 
     companion object {
         const val HOME              = "file:///android_asset/home.html"
@@ -157,12 +152,33 @@ class MainActivity : AppCompatActivity() {
             CookieManager.getInstance().removeAllCookies(null)
             WebStorage.getInstance().deleteAllData()
         }
-        releaseWakeLock()
         webView.destroy()
         splitWebView.destroy()
         dummyWebView?.destroy()
         dummyWebView = null
         super.onDestroy()
+    }
+
+    // ════════════════════════════════════════════════════════════
+    // State save/restore — survive process kill (scenario B)
+    // ════════════════════════════════════════════════════════════
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        val tab = tabManager.getActiveTab()
+        if (tab != null && tab.url.isNotBlank() && tab.url != HOME) {
+            outState.putString("active_url", tab.url)
+            outState.putString("active_title", tab.title)
+        }
+    }
+
+    override fun onRestoreInstanceState(savedState: Bundle) {
+        super.onRestoreInstanceState(savedState)
+        val url = savedState.getString("active_url") ?: return
+        val title = savedState.getString("active_title") ?: ""
+        tabManager.updateActiveUrl(url)
+        tabManager.updateActiveTitle(title)
+        webView.loadUrl(url)
+        urlInput.setText(title.takeIf { it.isNotBlank() } ?: url)
     }
 
     // ════════════════════════════════════════════════════════════
@@ -179,7 +195,6 @@ class MainActivity : AppCompatActivity() {
         pipDot              = findViewById(R.id.pipDot)
         memBanner           = findViewById(R.id.memBanner)
         imgSearchBtn        = findViewById(R.id.imgSearchBtn)
-        wakeLockBtn         = findViewById(R.id.wakeLockBtn)
         paneIndicator       = findViewById(R.id.paneIndicator)
 
         splitWebView        = findViewById(R.id.splitWebView)
@@ -234,7 +249,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onResume() { super.onResume(); memoryMonitor.start() }
-    override fun onPause()  { super.onPause();  memoryMonitor.stop(); releaseWakeLock() }
+    override fun onPause()  { super.onPause();  memoryMonitor.stop() }
 
     // ════════════════════════════════════════════════════════════
     // Main WebView setup
@@ -767,41 +782,11 @@ class MainActivity : AppCompatActivity() {
         }
 
         imgSearchBtn.setOnClickListener { searchImages() }
-        wakeLockBtn.setOnClickListener  { toggleWakeLock() }
         splitBtn.setOnClickListener     { enterSplitMode() }
         exitSplitBtn.setOnClickListener { exitSplitMode() }
 
         topTitleBar.setOnClickListener    { if (isSplitMode) setActivePane(false) }
         bottomTitleBar.setOnClickListener { if (isSplitMode) setActivePane(true) }
-    }
-
-    // ════════════════════════════════════════════════════════════
-    // Wake lock
-    // ════════════════════════════════════════════════════════════
-    private fun toggleWakeLock() {
-        if (wakeLockActive) {
-            releaseWakeLock()
-        } else {
-            val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
-            wakeLock = pm.newWakeLock(
-                PowerManager.SCREEN_BRIGHT_WAKE_LOCK or PowerManager.ON_AFTER_RELEASE,
-                "marrow:WakeLock"
-            ).also { it.acquire(4 * 60 * 60 * 1000L) } // max 4 hours
-            wakeLockActive = true
-            wakeLockBtn.text = "🔒"
-            wakeLockBtn.setTextColor(android.graphics.Color.parseColor("#5a9a5a"))
-            Toast.makeText(this, "Screen will stay on", Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    private fun releaseWakeLock() {
-        wakeLock?.let { if (it.isHeld) it.release() }
-        wakeLock = null
-        wakeLockActive = false
-        if (::wakeLockBtn.isInitialized) {
-            wakeLockBtn.text = "🔓"
-            wakeLockBtn.setTextColor(android.graphics.Color.parseColor("#c8bfaf"))
-        }
     }
 
     // ════════════════════════════════════════════════════════════
