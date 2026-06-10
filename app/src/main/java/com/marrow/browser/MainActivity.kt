@@ -714,7 +714,7 @@ class MainActivity : AppCompatActivity() {
     private fun normalizeUrl(input: String): String {
         if (input.startsWith("http://") || input.startsWith("https://")) return input
         if (input.startsWith("file://")) return input
-        val tldRegex = Regex("^[^\s.]+\.[a-zA-Z]{2,}(\.[a-zA-Z]{2,})?(/.*)?$")
+        val tldRegex = Regex("^[^\\s.]+\\.[a-zA-Z]{2,}(\\.[a-zA-Z]{2,})?(/.*)?$")
         if (!input.contains(" ") && tldRegex.matches(input)) return "https://$input"
         return DDG_BASE + URLEncoder.encode(input, "UTF-8")
     }
@@ -846,9 +846,9 @@ class MainActivity : AppCompatActivity() {
                 )
                 setPadding(24, 12, 24, 12)
                 background = if (tab.id == tabManager.activeTabId)
-                    androidx.core.content.ContextCompat.getDrawable(this, R.drawable.bg_tab_pill_active)
+                    androidx.core.content.ContextCompat.getDrawable(this@MainActivity, R.drawable.bg_tab_pill_active)
                 else
-                    androidx.core.content.ContextCompat.getDrawable(this, R.drawable.bg_tab_pill)
+                    androidx.core.content.ContextCompat.getDrawable(this@MainActivity, R.drawable.bg_tab_pill)
                 setOnClickListener { switchToTab(tab.id) }
             }
             val lp = LinearLayout.LayoutParams(
@@ -864,7 +864,7 @@ class MainActivity : AppCompatActivity() {
             textSize = if (atLimit) 10f else 16f
             setTextColor(Color.parseColor(if (atLimit) "#c0392b" else "#c8bfaf"))
             setPadding(24, 12, 24, 12)
-            background = androidx.core.content.ContextCompat.getDrawable(this, R.drawable.bg_tab_pill)
+            background = androidx.core.content.ContextCompat.getDrawable(this@MainActivity, R.drawable.bg_tab_pill)
             setOnClickListener {
                 if (atLimit) {
                     Toast.makeText(
@@ -896,7 +896,7 @@ class MainActivity : AppCompatActivity() {
         for (tab in tabManager.getTabs()) {
             val card = LinearLayout(this).apply {
                 orientation = LinearLayout.HORIZONTAL
-                background = androidx.core.content.ContextCompat.getDrawable(this, R.drawable.bg_tab_card)
+                background = androidx.core.content.ContextCompat.getDrawable(this@MainActivity, R.drawable.bg_tab_card)
                 setPadding(16, 12, 16, 12)
                 gravity = android.view.Gravity.CENTER_VERTICAL
             }
