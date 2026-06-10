@@ -151,6 +151,8 @@ class MainActivity : AppCompatActivity() {
             CookieManager.getInstance().removeAllCookies(null)
             WebStorage.getInstance().deleteAllData()
         }
+        webView.destroy()
+        splitWebView.destroy()
         dummyWebView?.destroy()
         dummyWebView = null
         super.onDestroy()
@@ -215,7 +217,7 @@ class MainActivity : AppCompatActivity() {
             MemoryMonitor.Level.RED    -> "#c0392b"
         }
         pipDot.background.setTint(Color.parseColor(color))
-        if (level == MemoryMonitor.Level.RED && !isSplitMode) {
+        if (level == MemoryMonitor.Level.RED) {
             memBanner.text = getString(R.string.mem_warning)
             memBanner.visibility = View.VISIBLE
         } else {
@@ -349,6 +351,11 @@ class MainActivity : AppCompatActivity() {
         val dummy = WebView(this).also { dummyWebView = it }
         applyFullSettings(dummy)
 
+        // Attach to hidden container so WebViewTransport works correctly
+        val dummyContainer = findViewById<FrameLayout>(R.id.dummyWebViewContainer)
+        dummyContainer.removeAllViews()
+        dummyContainer.addView(dummy)
+
         dummy.webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(
                 view: WebView,
@@ -369,24 +376,21 @@ class MainActivity : AppCompatActivity() {
                         tabManager.closeRedirectTab()
                         dummyWebView?.destroy()
                         dummyWebView = null
+                        dummyContainer.removeAllViews()
                         navigateTo(url, webView)
                         renderTabStrip()
                     }
                     return true
                 }
 
-                // Otherwise: update the redirect tab to reflect the latest destination
+                // First real URL — now open the redirect tab
                 runOnUiThread {
-                    tabManager.updateRedirectTabUrl(url)
+                    tabManager.openOrGetRedirectTab(url)
                     renderTabStrip()
                 }
                 return false
             }
         }
-
-        // Create (or reuse) the redirect tab so it's visible in the strip
-        tabManager.openOrGetRedirectTab("about:blank")
-        renderTabStrip()
 
         // Hand the dummy WebView to the site as its popup container
         val transport = resultMsg.obj as? WebView.WebViewTransport
@@ -562,6 +566,8 @@ class MainActivity : AppCompatActivity() {
         else
             "Privacy mode OFF"
         Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
+        // Reload active page so new settings take effect immediately
+        activeWebView().reload()
         // Refresh pip dot appearance
         memoryMonitor.start()
     }
@@ -584,7 +590,7 @@ class MainActivity : AppCompatActivity() {
 
         splitWebView.loadUrl(HOME)
         bottomTitleBar.text = "marrow"
-        topTitleBar.text = domainFrom(webView.url ?: "")
+        topTitleBar.text = webView.url?.takeIf { it.isNotBlank() }?.let { domainFrom(it) } ?: "marrow"
 
         setActivePane(false)
     }
@@ -679,7 +685,11 @@ class MainActivity : AppCompatActivity() {
                     splitWebView.url ?: ""
                 else
                     tabManager.getActiveTab()?.url ?: ""
-                urlInput.setText(if (url == HOME) "marrow" else (webView.title?.takeIf { it.isNotBlank() } ?: ""))
+                val title = if (isSplitMode && splitPaneActive)
+                    splitWebView.title?.takeIf { it.isNotBlank() }
+                else
+                    webView.title?.takeIf { it.isNotBlank() }
+                urlInput.setText(if (url == HOME) "marrow" else (title ?: ""))
             }
         }
 
@@ -704,7 +714,8 @@ class MainActivity : AppCompatActivity() {
     private fun normalizeUrl(input: String): String {
         if (input.startsWith("http://") || input.startsWith("https://")) return input
         if (input.startsWith("file://")) return input
-        if (input.contains(".") && !input.contains(" ")) return "https://$input"
+        val tldRegex = Regex("^[^\s.]+\.[a-zA-Z]{2,}(\.[a-zA-Z]{2,})?(/.*)?$")
+        if (!input.contains(" ") && tldRegex.matches(input)) return "https://$input"
         return DDG_BASE + URLEncoder.encode(input, "UTF-8")
     }
 
@@ -759,11 +770,25 @@ class MainActivity : AppCompatActivity() {
     // Image search
     // ════════════════════════════════════════════════════════════
     private fun searchImages() {
-        val current = urlInput.text.toString()
-        val query = extractSearchQuery(current).ifBlank { current }
+        val activeUrl = activeWebView().url ?: ""
+        if (activeUrl == HOME) {
+            // Pull query from the home page HTML input
+            activeWebView().evaluateJavascript("document.getElementById('q').value") { value ->
+                val query = value?.trim('"') ?: ""
+                if (query.isNotBlank()) {
+                    runOnUiThread {
+                        navigateTo(DDG_IMAGE_BASE + URLEncoder.encode(query, "UTF-8"), activeWebView())
+                    }
+                }
+            }
+            return
+        }
+        // Extract query from the real page URL
+        val query = extractSearchQuery(activeUrl).ifBlank {
+            urlInput.text.toString().trim()
+        }
         if (query.isBlank()) return
-        val target = activeWebView()
-        navigateTo(DDG_IMAGE_BASE + URLEncoder.encode(query, "UTF-8"), target)
+        navigateTo(DDG_IMAGE_BASE + URLEncoder.encode(query, "UTF-8"), activeWebView())
     }
 
     private fun extractSearchQuery(url: String): String {
@@ -821,9 +846,9 @@ class MainActivity : AppCompatActivity() {
                 )
                 setPadding(24, 12, 24, 12)
                 background = if (tab.id == tabManager.activeTabId)
-                    getDrawable(R.drawable.bg_tab_pill_active)
+                    androidx.core.content.ContextCompat.getDrawable(this, R.drawable.bg_tab_pill_active)
                 else
-                    getDrawable(R.drawable.bg_tab_pill)
+                    androidx.core.content.ContextCompat.getDrawable(this, R.drawable.bg_tab_pill)
                 setOnClickListener { switchToTab(tab.id) }
             }
             val lp = LinearLayout.LayoutParams(
@@ -839,7 +864,7 @@ class MainActivity : AppCompatActivity() {
             textSize = if (atLimit) 10f else 16f
             setTextColor(Color.parseColor(if (atLimit) "#c0392b" else "#c8bfaf"))
             setPadding(24, 12, 24, 12)
-            background = getDrawable(R.drawable.bg_tab_pill)
+            background = androidx.core.content.ContextCompat.getDrawable(this, R.drawable.bg_tab_pill)
             setOnClickListener {
                 if (atLimit) {
                     Toast.makeText(
@@ -871,7 +896,7 @@ class MainActivity : AppCompatActivity() {
         for (tab in tabManager.getTabs()) {
             val card = LinearLayout(this).apply {
                 orientation = LinearLayout.HORIZONTAL
-                background = getDrawable(R.drawable.bg_tab_card)
+                background = androidx.core.content.ContextCompat.getDrawable(this, R.drawable.bg_tab_card)
                 setPadding(16, 12, 16, 12)
                 gravity = android.view.Gravity.CENTER_VERTICAL
             }
@@ -928,7 +953,7 @@ class MainActivity : AppCompatActivity() {
         captureActivePane()
         val result = tabManager.openTab(HOME)
         if (result.oldestClosed) {
-            Toast.makeText(this, "Oldest tab closed", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Tab limit reached — oldest tab closed", Toast.LENGTH_SHORT).show()
         }
         activeWebView().loadUrl(HOME)
         renderTabStrip()
@@ -937,9 +962,6 @@ class MainActivity : AppCompatActivity() {
 
     private fun switchToTab(id: Int) {
         captureActivePane()
-        val prev = activeWebView()
-        prev.loadUrl("about:blank")
-        prev.clearCache(false)
         val tab = tabManager.switchToTab(id) ?: return
         val target = activeWebView()
         target.loadUrl(tab.url)
@@ -953,10 +975,6 @@ class MainActivity : AppCompatActivity() {
         if (tabManager.getRedirectTab()?.id == id) {
             dummyWebView?.destroy()
             dummyWebView = null
-        }
-        if (privacyModeActive) {
-            webView.clearCache(true)
-            webView.clearFormData()
         }
         val next = tabManager.closeTab(id)
         val target = activeWebView()
@@ -979,18 +997,18 @@ class MainActivity : AppCompatActivity() {
 
     private fun captureActivePane() {
         val wv = activeWebView()
-        try {
-            val bmp = Bitmap.createBitmap(
-                wv.width.takeIf  { it > 0 } ?: 1,
-                wv.height.takeIf { it > 0 } ?: 1,
-                Bitmap.Config.ARGB_8888
-            )
-            val canvas = android.graphics.Canvas(bmp)
-            wv.draw(canvas)
-            tabManager.updateActiveThumbnail(bmp)
-        } catch (e: Exception) {
-            // Skip thumbnail if capture fails
-        }
+        val w = wv.width.takeIf  { it > 0 } ?: return
+        val h = wv.height.takeIf { it > 0 } ?: return
+        Thread {
+            try {
+                val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+                val canvas = android.graphics.Canvas(bmp)
+                runOnUiThread { wv.draw(canvas) }
+                tabManager.updateActiveThumbnail(bmp)
+            } catch (e: Exception) {
+                // Skip thumbnail if capture fails
+            }
+        }.start()
     }
 
     private fun domainFrom(url: String): String {
