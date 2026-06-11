@@ -30,7 +30,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var webView: WebView
     private lateinit var urlInput: EditText
     private lateinit var tabCountBtn: TextView
-    private lateinit var tabStripInner: LinearLayout
     private lateinit var tabOverlay: FrameLayout
     private lateinit var loadingBar: ProgressBar
     private lateinit var paneIndicator: View
@@ -204,7 +203,6 @@ class MainActivity : AppCompatActivity() {
         webView             = findViewById(R.id.webView)
         urlInput            = findViewById(R.id.urlInput)
         tabCountBtn         = findViewById(R.id.tabCountBtn)
-        tabStripInner       = findViewById(R.id.tabStripInner)
         tabOverlay          = findViewById(R.id.tabOverlay)
         loadingBar          = findViewById(R.id.loadingBar)
         paneIndicator       = findViewById(R.id.paneIndicator)
