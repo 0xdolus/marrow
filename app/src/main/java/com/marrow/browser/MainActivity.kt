@@ -766,7 +766,8 @@ class MainActivity : AppCompatActivity() {
     private fun setupUrlBar() {
         urlInput.setOnFocusChangeListener { _, hasFocus ->
             if (hasFocus) {
-                showChrome()
+                exitFullscreen()
+            showChrome()
                 val realUrl = if (isSplitMode && splitPaneActive)
                     splitWebView.url ?: ""
                 else
@@ -798,6 +799,11 @@ class MainActivity : AppCompatActivity() {
                 }
                 true
             } else false
+        }
+
+        urlInput.setOnLongClickListener {
+            if (isFullscreen) exitFullscreen() else enterFullscreen()
+            true
         }
     }
 
