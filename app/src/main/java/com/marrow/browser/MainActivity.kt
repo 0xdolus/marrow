@@ -337,6 +337,7 @@ class MainActivity : AppCompatActivity() {
 
         webView.setOnScrollChangeListener { _, _, scrollY, _, oldScrollY ->
             if (urlInput.hasFocus()) return@setOnScrollChangeListener
+            if (scrollY > oldScrollY + 20) hideStatusBar() else if (scrollY < oldScrollY - 20) showStatusBar()
             if (scrollY > oldScrollY + 20) hideChrome()
             else if (scrollY < oldScrollY - 20) showChrome()
         }
@@ -351,6 +352,26 @@ class MainActivity : AppCompatActivity() {
     // ════════════════════════════════════════════════════════════
     // Chrome show / hide helpers
     // ════════════════════════════════════════════════════════════
+    private fun hideStatusBar() {
+        if (android.os.Build.VERSION.SDK_INT >= 30) {
+            window.insetsController?.hide(android.view.WindowInsets.Type.statusBars())
+        } else {
+            @Suppress("DEPRECATION")
+            window.decorView.systemUiVisibility = window.decorView.systemUiVisibility or
+                View.SYSTEM_UI_FLAG_FULLSCREEN or View.SYSTEM_UI_FLAG_IMMERSIVE
+        }
+    }
+
+    private fun showStatusBar() {
+        if (android.os.Build.VERSION.SDK_INT >= 30) {
+            window.insetsController?.show(android.view.WindowInsets.Type.statusBars())
+        } else {
+            @Suppress("DEPRECATION")
+            window.decorView.systemUiVisibility = window.decorView.systemUiVisibility and
+                View.SYSTEM_UI_FLAG_FULLSCREEN.inv()
+        }
+    }
+
     private fun showChrome() {
         if (bottomChrome.visibility == View.VISIBLE && bottomChrome.translationY == 0f) return
         bottomChrome.visibility = View.VISIBLE
