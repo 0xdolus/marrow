@@ -618,7 +618,7 @@ class MainActivity : AppCompatActivity() {
             webView.clearFormData()
         }
         val msg = if (privacyModeActive)
-            "🔒 Privacy mode ON — no history or cache"
+            "Privacy mode ON"
         else
             "Privacy mode OFF"
         Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
