@@ -31,8 +31,9 @@
   }
 
   .wordmark {
-    font-size: 13px;
-    letter-spacing: 0.3em;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.45em;
     color: #444;
     text-transform: lowercase;
     user-select: none;
@@ -53,17 +54,23 @@
     font-size: 15px;
     padding: 14px 48px 14px 18px;
     outline: none;
-    caret-color: #5a9a5a;
+    caret-color: #6d8f72;
     -webkit-appearance: none;
-    transition: border-color 0.15s;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,0.02),
+      0 8px 24px rgba(0,0,0,0.25);
   }
 
   .search-input::placeholder {
-    color: #444;
+    color: #666;
   }
 
   .search-input:focus {
-    border-color: #5a9a5a;
+    border-color: #6d8f72;
+    box-shadow:
+      0 0 0 1px rgba(109,143,114,0.4),
+      0 8px 24px rgba(0,0,0,0.25);
   }
 
   .search-btn {
@@ -86,15 +93,88 @@
   }
 
   .search-input:focus ~ .search-btn svg {
-    stroke: #5a9a5a;
+    stroke: #6d8f72;
   }
 
+  /* Engine dropdown */
+  .engine-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    position: relative;
+  }
+
+  .engine-btn {
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    border-radius: 8px;
+    color: #666;
+    font-size: 12px;
+    letter-spacing: 0.03em;
+    padding: 6px 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: border-color 0.15s, color 0.15s;
+    -webkit-appearance: none;
+    white-space: nowrap;
+  }
+
+  .engine-btn:hover, .engine-btn:focus {
+    border-color: #3a3a3a;
+    color: #888;
+    outline: none;
+  }
+
+  .engine-btn .chevron {
+    font-size: 9px;
+    opacity: 0.5;
+  }
+
+  .engine-dropdown {
+    display: none;
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    border-radius: 10px;
+    overflow: hidden;
+    z-index: 100;
+    min-width: 160px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  }
+
+  .engine-dropdown.open {
+    display: block;
+  }
+
+  .engine-option {
+    padding: 10px 14px;
+    font-size: 13px;
+    color: #888;
+    cursor: pointer;
+    transition: background 0.1s, color 0.1s;
+  }
+
+  .engine-option:hover {
+    background: #222;
+    color: #c8bfaf;
+  }
+
+  .engine-option.active {
+    color: #6d8f72;
+  }
+
+  /* Status pip */
   .pip {
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: #5a9a5a;
-    margin-top: 8px;
+    background: #6d8f72;
+    margin-top: 4px;
+    transition: background 0.3s;
   }
 </style>
 </head>
@@ -123,29 +203,99 @@
     </button>
   </div>
 
+  <div class="engine-wrap">
+    <button class="engine-btn" id="engineBtn" onclick="toggleDropdown()">
+      <span id="engineLabel">Google</span>
+      <span class="chevron">▾</span>
+    </button>
+    <div class="engine-dropdown" id="engineDropdown"></div>
+  </div>
+
   <div class="pip" id="pip"></div>
 </div>
 
 <script>
-  const input = document.getElementById('q');
+  const input    = document.getElementById('q');
+  const pip      = document.getElementById('pip');
+  const dropdown = document.getElementById('engineDropdown');
+  const label    = document.getElementById('engineLabel');
 
-  input.addEventListener('keydown', function(e) {
+  const ENGINES = {
+    'Google':       'https://www.google.com/search?q=',
+    'DuckDuckGo':   'https://duckduckgo.com/?q=',
+    'Brave':        'https://search.brave.com/search?q=',
+    'Perplexity':   'https://www.perplexity.ai/search?q=',
+    'Bing':         'https://www.bing.com/search?q=',
+    'Kagi':         'https://kagi.com/search?q=',
+    'Startpage':    'https://www.startpage.com/search?q=',
+    'Ecosia':       'https://www.ecosia.org/search?q=',
+    'Qwant':        'https://www.qwant.com/?q='
+  };
+
+  let selectedEngine = localStorage.getItem('engine') || 'Google';
+
+  function buildDropdown() {
+    dropdown.innerHTML = '';
+    Object.keys(ENGINES).forEach(name => {
+      const opt = document.createElement('div');
+      opt.className = 'engine-option' + (name === selectedEngine ? ' active' : '');
+      opt.textContent = name;
+      opt.onclick = () => selectEngine(name);
+      dropdown.appendChild(opt);
+    });
+  }
+
+  function selectEngine(name) {
+    selectedEngine = name;
+    localStorage.setItem('engine', name);
+    label.textContent = name;
+    dropdown.classList.remove('open');
+    buildDropdown();
+  }
+
+  function toggleDropdown() {
+    dropdown.classList.toggle('open');
+  }
+
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.engine-wrap')) {
+      dropdown.classList.remove('open');
+    }
+  });
+
+  input.addEventListener('keydown', e => {
     if (e.key === 'Enter') doSearch();
+  });
+
+  document.addEventListener('keydown', e => {
+    if (e.key === '/' && document.activeElement !== input) {
+      e.preventDefault();
+      input.focus();
+    }
   });
 
   function doSearch() {
     const val = input.value.trim();
     if (!val) return;
+    pip.style.background = '#c8a34a';
     if (val.startsWith('http://') || val.startsWith('https://')) {
       window.location.href = val;
-    } else if (val.includes('.') && !val.includes(' ')) {
+    } else if (/^[a-zA-Z0-9-]+\.[a-zA-Z]{2,}/.test(val) && !val.includes(' ')) {
       window.location.href = 'https://' + val;
     } else {
-      // Search via Yandex
-      window.location.href = 'https://yandex.com/search/?text=' +
-        encodeURIComponent(val);
+      window.location.href = ENGINES[selectedEngine] + encodeURIComponent(val);
     }
   }
+
+  // Init
+  buildDropdown();
+  label.textContent = selectedEngine;
+
+  window.addEventListener('load', () => {
+    input.focus();
+    pip.style.background = '#6d8f72';
+  });
 </script>
 </body>
 </html>
+
