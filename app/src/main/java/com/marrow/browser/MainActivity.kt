@@ -999,62 +999,7 @@ class MainActivity : AppCompatActivity() {
     // Tab strip + overlay
     // ════════════════════════════════════════════════════════════
     private fun renderTabStrip() {
-        tabStripInner.removeAllViews()
-        val userTabs    = tabManager.getUserTabs()
-        val redirectTab = tabManager.getRedirectTab()
-        val displayTabs = tabManager.getTabs()   // includes redirect tab if present
-
-        // Tab count shows only user tabs
-        tabCountBtn.text = userTabs.size.toString()
-
-        for (tab in displayTabs) {
-            val label = when {
-                tab.isRedirectTab      -> "⇄"
-                tab.url == HOME        -> "home"
-                tab.title.isNotBlank() -> tab.title.take(16)
-                else                   -> domainFrom(tab.url)
-            }
-            val pill = TextView(this).apply {
-                text = label
-                textSize = 11f
-                setTextColor(
-                    if (tab.isRedirectTab) Color.parseColor("#c8a840")
-                    else                   Color.parseColor("#c8bfaf")
-                )
-                setPadding(24, 12, 24, 12)
-                background = if (tab.id == tabManager.activeTabId)
-                    androidx.core.content.ContextCompat.getDrawable(this@MainActivity, R.drawable.bg_tab_pill_active)
-                else
-                    androidx.core.content.ContextCompat.getDrawable(this@MainActivity, R.drawable.bg_tab_pill)
-                setOnClickListener { switchToTab(tab.id) }
-            }
-            val lp = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply { marginEnd = 6 }
-            tabStripInner.addView(pill, lp)
-        }
-
-        val atLimit = userTabs.size >= TabManager.MAX_TABS
-        val addBtn = TextView(this).apply {
-            text = if (atLimit) "4/4" else "+"
-            textSize = if (atLimit) 10f else 16f
-            setTextColor(Color.parseColor(if (atLimit) "#c0392b" else "#c8bfaf"))
-            setPadding(24, 12, 24, 12)
-            background = androidx.core.content.ContextCompat.getDrawable(this@MainActivity, R.drawable.bg_tab_pill)
-            setOnClickListener {
-                if (atLimit) {
-                    Toast.makeText(
-                        this@MainActivity,
-                        "Tab limit reached — close a tab first",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                } else {
-                    openNewTab()
-                }
-            }
-        }
-        tabStripInner.addView(addBtn)
+        tabCountBtn.text = tabManager.getUserTabs().size.toString()
     }
 
     private fun renderTabOverlay() {
