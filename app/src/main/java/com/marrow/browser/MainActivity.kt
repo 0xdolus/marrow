@@ -81,7 +81,7 @@ class MainActivity : AppCompatActivity() {
 
     companion object {
         const val HOME              = "file:///android_asset/home.html"
-        const val SCROLL_SCRIPT = """
+        val SCROLL_SCRIPT = """
 (function() {
   if (window.__scrollBridgeInstalled) return;
   window.__scrollBridgeInstalled = true;
