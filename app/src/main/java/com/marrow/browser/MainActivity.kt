@@ -26,6 +26,7 @@ class MainActivity : AppCompatActivity() {
 
     // ── Core views ──────────────────────────────────────────────
     private lateinit var chromeBg: LinearLayout
+    private lateinit var bottomChrome: LinearLayout
     private lateinit var webView: WebView
     private lateinit var urlInput: EditText
     private lateinit var tabCountBtn: TextView
@@ -189,6 +190,7 @@ class MainActivity : AppCompatActivity() {
     // ════════════════════════════════════════════════════════════
     private fun bindViews() {
         chromeBg            = findViewById(R.id.chromeBg)
+        bottomChrome        = findViewById(R.id.bottomChrome)
         webView             = findViewById(R.id.webView)
         urlInput            = findViewById(R.id.urlInput)
         tabCountBtn         = findViewById(R.id.tabCountBtn)
@@ -318,6 +320,11 @@ class MainActivity : AppCompatActivity() {
         applyFullSettings(webView)
         topModeRow.visibility = View.GONE
 
+        var lastScrollY = 0
+        webView.setOnScrollChangeListener { _, _, scrollY, _, oldScrollY ->
+            if (scrollY > oldScrollY + 10) bottomChrome.animate().translationY(bottomChrome.height.toFloat()).setDuration(200).start()
+            else if (scrollY < oldScrollY - 10) bottomChrome.animate().translationY(0f).setDuration(200).start()
+        }
         webView.setOnTouchListener { _, _ ->
             if (isSplitMode && splitPaneActive) setActivePane(false)
             false

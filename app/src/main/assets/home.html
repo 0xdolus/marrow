@@ -1,151 +1,99 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>marrow</title>
-<style>
-  * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    -webkit-tap-highlight-color: transparent;
-  }
-
-  html, body {
-    height: 100%;
-    background: #0f0f0f;
-    color: #f0ead6;
-    font-family: -apple-system, sans-serif;
-    overflow: hidden;
-  }
-
-  .page {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 100%;
-    padding: 32px 24px;
-    gap: 20px;
-  }
-
-  .wordmark {
-    font-size: 13px;
-    letter-spacing: 0.3em;
-    color: #444;
-    text-transform: lowercase;
-    user-select: none;
-  }
-
-  .search-wrap {
-    width: 100%;
-    max-width: 420px;
-    position: relative;
-  }
-
-  .search-input {
-    width: 100%;
-    background: #1a1a1a;
-    border: 1px solid #2a2a2a;
-    border-radius: 12px;
-    color: #c8bfaf;
-    font-size: 15px;
-    padding: 14px 48px 14px 18px;
-    outline: none;
-    caret-color: #5a9a5a;
-    -webkit-appearance: none;
-    transition: border-color 0.15s;
-  }
-
-  .search-input::placeholder {
-    color: #444;
-  }
-
-  .search-input:focus {
-    border-color: #5a9a5a;
-  }
-
-  .search-btn {
-    position: absolute;
-    right: 14px;
-    top: 50%;
-    transform: translateY(-50%);
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 4px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .search-btn svg {
-    stroke: #555;
-    transition: stroke 0.15s;
-  }
-
-  .search-input:focus ~ .search-btn svg {
-    stroke: #5a9a5a;
-  }
-
-  .pip {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: #5a9a5a;
-    margin-top: 8px;
-  }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Marrow</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap');
+        
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            color: #fff;
+            font-family: 'Inter', system-ui, sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        
+        .logo {
+            font-size: 32px;
+            font-weight: 500;
+            letter-spacing: 2px;
+            margin-bottom: 60px;
+            opacity: 0.95;
+        }
+        
+        .search-container {
+            width: 88%;
+            max-width: 520px;
+            position: relative;
+        }
+        
+        .search-bar {
+            width: 100%;
+            background: #111;
+            border: 1.5px solid #0a0;
+            border-radius: 9999px;
+            padding: 16px 24px;
+            font-size: 17px;
+            color: white;
+            outline: none;
+        }
+        
+        .search-bar::placeholder {
+            color: #666;
+        }
+        
+        .bottom-bar {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 8px;
+            border-radius: 9999px;
+            border: 1px solid #222;
+        }
+        
+        .btn {
+            background: #111;
+            color: #0f0;
+            padding: 10px 18px;
+            border-radius: 9999px;
+            border: 1px solid #0a0;
+            font-size: 15px;
+            min-width: 52px;
+            text-align: center;
+        }
+        
+        .home-btn {
+            background: #0a0;
+            color: #000;
+            font-weight: 500;
+        }
+    </style>
 </head>
 <body>
-<div class="page">
-  <span class="wordmark">marrow</span>
+    <div class="logo">marrow</div>
+    
+    <div class="search-container">
+        <input type="text" class="search-bar" placeholder="search or enter url" autofocus>
+    </div>
 
-  <div class="search-wrap">
-    <input
-      class="search-input"
-      id="q"
-      type="text"
-      placeholder="search or enter url"
-      autocomplete="off"
-      autocorrect="off"
-      autocapitalize="off"
-      spellcheck="false"
-      enterkeyhint="go"
-    />
-    <button class="search-btn" onclick="doSearch()">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-           stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="11" cy="11" r="8"/>
-        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-      </svg>
-    </button>
-  </div>
-
-  <div class="pip" id="pip"></div>
-</div>
-
-<script>
-  const input = document.getElementById('q');
-
-  input.addEventListener('keydown', function(e) {
-    if (e.key === 'Enter') doSearch();
-  });
-
-  function doSearch() {
-    const val = input.value.trim();
-    if (!val) return;
-    if (val.startsWith('http://') || val.startsWith('https://')) {
-      window.location.href = val;
-    } else if (val.includes('.') && !val.includes(' ')) {
-      window.location.href = 'https://' + val;
-    } else {
-      // Search via Yandex
-      window.location.href = 'https://yandex.com/search/?text=' +
-        encodeURIComponent(val);
-    }
-  }
-</script>
+    <div class="bottom-bar">
+        <div class="btn home-btn">home</div>
+        <div class="btn">+</div>
+        <div class="btn">1</div>
+        <div class="btn">pix</div>
+    </div>
 </body>
 </html>

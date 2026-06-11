@@ -137,6 +137,7 @@
 
     <!-- BOTTOM CHROME -->
     <LinearLayout
+        android:id="@+id/bottomChrome"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
