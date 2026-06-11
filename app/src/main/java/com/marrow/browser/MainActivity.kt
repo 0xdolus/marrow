@@ -33,8 +33,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tabStripInner: LinearLayout
     private lateinit var tabOverlay: FrameLayout
     private lateinit var loadingBar: ProgressBar
-    private lateinit var pipDot: TextView
-    private lateinit var memBanner: TextView
     private lateinit var imgSearchBtn: TextView
     private lateinit var enginePickerBtn: TextView
     private lateinit var paneIndicator: View
@@ -213,8 +211,6 @@ class MainActivity : AppCompatActivity() {
         tabStripInner       = findViewById(R.id.tabStripInner)
         tabOverlay          = findViewById(R.id.tabOverlay)
         loadingBar          = findViewById(R.id.loadingBar)
-        pipDot              = findViewById(R.id.pipDot)
-        memBanner           = findViewById(R.id.memBanner)
         imgSearchBtn        = findViewById(R.id.imgSearchBtn)
         enginePickerBtn     = findViewById(R.id.enginePickerBtn)
         paneIndicator       = findViewById(R.id.paneIndicator)
@@ -244,35 +240,10 @@ class MainActivity : AppCompatActivity() {
     // ════════════════════════════════════════════════════════════
     // Memory monitor
     // ════════════════════════════════════════════════════════════
-    private fun setupMemoryMonitor() {
-        memoryMonitor = MemoryMonitor(this) { level ->
-            runOnUiThread { updatePip(level) }
-        }
-    }
 
-    private fun updatePip(level: MemoryMonitor.Level) {
-        // Privacy mode overrides the pip color to blue
-        if (privacyModeActive) {
-            pipDot.background.setTint(Color.parseColor(COLOR_PRIVACY))
-            memBanner.visibility = View.GONE
-            return
-        }
-        val color = when (level) {
-            MemoryMonitor.Level.GREEN  -> "#5a9a5a"
-            MemoryMonitor.Level.YELLOW -> "#c8a840"
-            MemoryMonitor.Level.RED    -> "#c0392b"
-        }
-        pipDot.background.setTint(Color.parseColor(color))
-        if (level == MemoryMonitor.Level.RED) {
-            memBanner.text = getString(R.string.mem_warning)
-            memBanner.visibility = View.VISIBLE
-        } else {
-            memBanner.visibility = View.GONE
-        }
-    }
 
-    override fun onResume() { super.onResume(); memoryMonitor.start() }
-    override fun onPause()  { super.onPause();  memoryMonitor.stop() }
+    override fun onResume() { super.onResume() }
+    override fun onPause()  { super.onPause() }
 
     // ════════════════════════════════════════════════════════════
     // Main WebView setup
@@ -339,9 +310,6 @@ class MainActivity : AppCompatActivity() {
 
         webView.setOnScrollChangeListener { _, _, scrollY, _, oldScrollY ->
             if (urlInput.hasFocus()) return@setOnScrollChangeListener
-            if (scrollY > oldScrollY + 20) hideStatusBar() else if (scrollY < oldScrollY - 20) showStatusBar()
-            if (scrollY > oldScrollY + 20) hideChrome()
-            else if (scrollY < oldScrollY - 20) showChrome()
         }
         webView.setOnTouchListener { _, _ ->
             if (isSplitMode && splitPaneActive) setActivePane(false)
@@ -354,45 +322,9 @@ class MainActivity : AppCompatActivity() {
     // ════════════════════════════════════════════════════════════
     // Chrome show / hide helpers
     // ════════════════════════════════════════════════════════════
-    private fun hideStatusBar() {
-        if (android.os.Build.VERSION.SDK_INT >= 30) {
-            window.insetsController?.hide(android.view.WindowInsets.Type.statusBars())
-        } else {
-            @Suppress("DEPRECATION")
-            window.decorView.systemUiVisibility = window.decorView.systemUiVisibility or
-                View.SYSTEM_UI_FLAG_FULLSCREEN or View.SYSTEM_UI_FLAG_IMMERSIVE
-        }
-    }
 
-    private fun showStatusBar() {
-        if (android.os.Build.VERSION.SDK_INT >= 30) {
-            window.insetsController?.show(android.view.WindowInsets.Type.statusBars())
-        } else {
-            @Suppress("DEPRECATION")
-            window.decorView.systemUiVisibility = window.decorView.systemUiVisibility and
-                View.SYSTEM_UI_FLAG_FULLSCREEN.inv()
-        }
-    }
 
-    private fun showChrome() {
-        if (bottomChrome.visibility == View.VISIBLE && bottomChrome.translationY == 0f) return
-        bottomChrome.visibility = View.VISIBLE
-        bottomChrome.animate()
-            .translationY(0f)
-            .alpha(1f)
-            .setDuration(200)
-            .start()
-    }
 
-    private fun hideChrome() {
-        if (bottomChrome.visibility == View.GONE) return
-        bottomChrome.animate()
-            .translationY(bottomChrome.height.toFloat())
-            .alpha(0f)
-            .setDuration(200)
-            .withEndAction { bottomChrome.visibility = View.GONE }
-            .start()
-    }
 
     private fun enterFullscreen() {
         isFullscreen = true
@@ -700,10 +632,6 @@ class MainActivity : AppCompatActivity() {
         Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
         // Reload active page so new settings take effect immediately
         activeWebView().reload()
-        // Refresh pip dot appearance. stop() first to prevent a second concurrent
-        // poll loop accumulating on every subsequent privacy-mode toggle.
-        memoryMonitor.stop()
-        memoryMonitor.start()
     }
 
     // ════════════════════════════════════════════════════════════
@@ -806,7 +734,6 @@ class MainActivity : AppCompatActivity() {
         urlInput.setOnFocusChangeListener { _, hasFocus ->
             if (hasFocus) {
                 exitFullscreen()
-            showChrome()
                 val realUrl = if (isSplitMode && splitPaneActive)
                     splitWebView.url ?: ""
                 else
