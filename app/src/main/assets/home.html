@@ -221,15 +221,36 @@
   const label    = document.getElementById('engineLabel');
 
   const ENGINES = {
-    'Google':       'https://www.google.com/search?q=',
-    'DuckDuckGo':   'https://duckduckgo.com/?q=',
-    'Brave':        'https://search.brave.com/search?q=',
-    'Perplexity':   'https://www.perplexity.ai/search?q=',
-    'Bing':         'https://www.bing.com/search?q=',
-    'Kagi':         'https://kagi.com/search?q=',
-    'Startpage':    'https://www.startpage.com/search?q=',
-    'Ecosia':       'https://www.ecosia.org/search?q=',
-    'Qwant':        'https://www.qwant.com/?q='
+    'Google':         'https://www.google.com/search?q=',
+    'Bing':           'https://www.bing.com/search?q=',
+    'Yahoo':          'https://search.yahoo.com/search?p=',
+    'Yandex':         'https://yandex.com/search/?text=',
+    'DuckDuckGo':     'https://duckduckgo.com/?q=',
+    'Brave':          'https://search.brave.com/search?q=',
+    'YouTube':        'https://www.youtube.com/results?search_query=',
+    'Gibiru':         'https://gibiru.com/results.html?q=',
+    'Perplexity':     'https://www.perplexity.ai/search?q=',
+    'You.com':        'https://you.com/search?q=',
+    'Startpage':      'https://www.startpage.com/search?q=',
+    'Baidu':          'https://www.baidu.com/s?wd=',
+    'Kagi':           'https://kagi.com/search?q=',
+    'Ecosia':         'https://www.ecosia.org/search?q=',
+    'Qwant':          'https://www.qwant.com/?q=',
+    'Naver':          'https://search.naver.com/search.naver?query=',
+    'Swisscows':      'https://swisscows.com/web?query=',
+    'Reddit':         'https://www.reddit.com/search/?q=',
+    'Andi':           'https://andisearch.com/?q=',
+    'Phind':          'https://www.phind.com/search?q=',
+    'Mojeek':         'https://www.mojeek.com/search?q=',
+    'MetaGer':        'https://metager.org/meta/meta.ger3?eingabe=',
+    'Wikipedia':      'https://en.wikipedia.org/w/index.php?search=',
+    'Gigablast':      'https://www.gigablast.com/search?q=',
+    'Presearch':      'https://presearch.com/search?q=',
+    'Searx':          'https://searx.be/search?q=',
+    'Dogpile':        'https://www.dogpile.com/serp?q=',
+    'Google Scholar': 'https://scholar.google.com/scholar?q=',
+    'Wolfram Alpha':  'https://www.wolframalpha.com/input?i=',
+    'AOL Search':     'https://search.aol.com/aol/search?q='
   };
 
   let selectedEngine = localStorage.getItem('engine') || 'Google';
