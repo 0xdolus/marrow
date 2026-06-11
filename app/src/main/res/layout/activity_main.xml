@@ -202,20 +202,6 @@
                 android:background="#5a9a5a"
                 android:visibility="gone" />
 
-            <TextView
-                android:id="@+id/enginePickerBtn"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="⌄"
-                android:textColor="#c8bfaf"
-                android:textSize="13sp"
-                android:gravity="center"
-                android:paddingStart="8dp"
-                android:paddingEnd="2dp"
-                android:paddingTop="6dp"
-                android:paddingBottom="6dp"
-                android:layout_marginStart="4dp" />
-
             <EditText
                 android:id="@+id/urlInput"
                 android:layout_width="0dp"
@@ -235,19 +221,6 @@
                 android:inputType="textUri"
                 android:maxLines="1"
                 android:selectAllOnFocus="true" />
-
-            <TextView
-                android:id="@+id/imgSearchBtn"
-                android:layout_width="40dp"
-                android:layout_height="wrap_content"
-                android:text="@string/img_search"
-                android:textColor="#c8bfaf"
-                android:textSize="11sp"
-                android:gravity="center"
-                android:paddingTop="6dp"
-                android:paddingBottom="6dp"
-                android:layout_marginStart="6dp"
-                android:background="@drawable/bg_tab_pill" />
 
 <!-- Split button -->
             <TextView

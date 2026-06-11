@@ -33,8 +33,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tabStripInner: LinearLayout
     private lateinit var tabOverlay: FrameLayout
     private lateinit var loadingBar: ProgressBar
-    private lateinit var imgSearchBtn: TextView
-    private lateinit var enginePickerBtn: TextView
     private lateinit var paneIndicator: View
 
     // ── Split views ──────────────────────────────────────────────
@@ -209,8 +207,6 @@ class MainActivity : AppCompatActivity() {
         tabStripInner       = findViewById(R.id.tabStripInner)
         tabOverlay          = findViewById(R.id.tabOverlay)
         loadingBar          = findViewById(R.id.loadingBar)
-        imgSearchBtn        = findViewById(R.id.imgSearchBtn)
-        enginePickerBtn     = findViewById(R.id.enginePickerBtn)
         paneIndicator       = findViewById(R.id.paneIndicator)
 
         splitWebView        = findViewById(R.id.splitWebView)
@@ -823,8 +819,6 @@ class MainActivity : AppCompatActivity() {
             true
         }
 
-        imgSearchBtn.setOnClickListener { searchImages() }
-        enginePickerBtn.setOnClickListener { showEnginePicker() }
         splitBtn.setOnClickListener     { enterSplitMode() }
         exitSplitBtn.setOnClickListener { exitSplitMode() }
 
@@ -967,13 +961,8 @@ class MainActivity : AppCompatActivity() {
             scroll.layoutParams = FrameLayout.LayoutParams(
                 android.view.ViewGroup.LayoutParams.MATCH_PARENT, maxH
             )
-            // position near the enginePickerBtn
-            val loc = IntArray(2)
-            enginePickerBtn.getLocationInWindow(loc)
             val attr = attributes
             attr.gravity = android.view.Gravity.TOP or android.view.Gravity.START
-            attr.x = loc[0]
-            attr.y = loc[1] + enginePickerBtn.height
             attributes = attr
         }
         dialog.show()
