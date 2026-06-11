@@ -81,6 +81,26 @@ class MainActivity : AppCompatActivity() {
 
     companion object {
         const val HOME              = "file:///android_asset/home.html"
+        const val SCROLL_SCRIPT = """
+(function() {
+  if (window.__scrollBridgeInstalled) return;
+  window.__scrollBridgeInstalled = true;
+  var lastY = 0, accDown = 0, accUp = 0, hidden = false;
+  window.addEventListener('scroll', function() {
+    var y = window.scrollY;
+    var delta = y - lastY;
+    lastY = y;
+    if (delta > 0) { accDown += delta; accUp = 0; }
+    else           { accUp += Math.abs(delta); accDown = 0; }
+      hidden = true; accDown = 0;
+      ScrollBridge.onScrollDirectionChanged('down');
+    } else if (hidden && (accUp > 50 || y === 0)) {
+      hidden = false; accUp = 0;
+      ScrollBridge.onScrollDirectionChanged('up');
+    }
+  }, { passive: true });
+})();
+""".trimIndent()
         const val DDG_BASE          = "https://yandex.com/search/?text="
         const val DDG_IMAGE_BASE    = "https://yandex.com/images/search?text="
 
@@ -256,6 +276,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         webView.webViewClient = threadClient
+        webView.addJavascriptInterface(ScrollBridge(), "ScrollBridge")
         webView.webChromeClient = object : WebChromeClient() {
             override fun onProgressChanged(view: WebView?, newProgress: Int) {
                 if (!splitPaneActive) {
@@ -483,7 +504,9 @@ class MainActivity : AppCompatActivity() {
                 if (privacyModeActive) view?.clearHistory()
                 runOnUiThread {
                     if (splitPaneActive) urlInput.setText("")
+                    showChrome()
                 }
+                view?.evaluateJavascript(SCROLL_SCRIPT, null)
             }
         }
 
@@ -605,6 +628,34 @@ class MainActivity : AppCompatActivity() {
     // ════════════════════════════════════════════════════════════
     // Privacy mode toggle
     // ════════════════════════════════════════════════════════════
+
+    // ── Chrome auto-hide ─────────────────────────────────────────
+    private var chromeHidden = false
+
+    private fun hideChrome() {
+        if (chromeHidden) return
+        chromeHidden = true
+        bottomChrome.animate()
+            .translationY(bottomChrome.height.toFloat())
+            .setDuration(200).start()
+    }
+
+    fun showChrome() {
+        if (!chromeHidden) return
+        chromeHidden = false
+        bottomChrome.animate()
+            .translationY(0f)
+            .setDuration(200).start()
+    }
+
+    inner class ScrollBridge {
+        @android.webkit.JavascriptInterface
+        fun onScrollDirectionChanged(direction: String) {
+            runOnUiThread {
+                if (direction == "down") hideChrome() else showChrome()
+            }
+        }
+    }
     private fun togglePrivacyMode() {
         privacyModeActive = !privacyModeActive
         applyFullSettings(webView)
@@ -722,6 +773,7 @@ class MainActivity : AppCompatActivity() {
     // ════════════════════════════════════════════════════════════
     private fun setupUrlBar() {
         urlInput.setOnFocusChangeListener { _, hasFocus ->
+            if (hasFocus) showChrome()
             if (hasFocus) {
                 exitFullscreen()
                 val realUrl = if (isSplitMode && splitPaneActive)
@@ -1070,6 +1122,7 @@ class MainActivity : AppCompatActivity() {
     // Tab actions
     // ════════════════════════════════════════════════════════════
     private fun openNewTab() {
+        showChrome()
         captureActivePane()
         val result = tabManager.openTab(HOME)
         if (result.oldestClosed) {
