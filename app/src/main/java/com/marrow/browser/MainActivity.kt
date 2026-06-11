@@ -286,7 +286,6 @@ class MainActivity : AppCompatActivity() {
                 tabManager.updateActiveUrl(url)
                 renderTabStrip()
                 readThemeColor()
-                if (isSplitMode) topTitleBar.text = domainFrom(url)
             }
         }
 
@@ -523,7 +522,6 @@ class MainActivity : AppCompatActivity() {
                 if (privacyModeActive) view?.clearHistory()
                 runOnUiThread {
                     if (splitPaneActive) urlInput.setText("")
-                    bottomTitleBar.text = domainFrom(url)
                 }
             }
         }
@@ -680,14 +678,12 @@ class MainActivity : AppCompatActivity() {
         splitDivider.visibility        = View.VISIBLE
         exitSplitBtn.visibility        = View.VISIBLE
         splitBtn.visibility            = View.GONE
-        topTitleBar.visibility         = View.VISIBLE
-        bottomTitleBar.visibility      = View.VISIBLE
+        topTitleBar.visibility = View.GONE
+        bottomTitleBar.visibility = View.GONE
 
         snapToEqual()
 
         splitWebView.loadUrl(HOME)
-        bottomTitleBar.text = "marrow"
-        topTitleBar.text = webView.url?.takeIf { it.isNotBlank() }?.let { domainFrom(it) } ?: "marrow"
 
         setActivePane(false)
     }
@@ -734,7 +730,7 @@ class MainActivity : AppCompatActivity() {
             urlInput.setText("")
             splitDivider.setBackgroundColor(Color.parseColor(COLOR_BOTTOM_PANE))
             topModeRow.visibility      = View.GONE
-            topTitleBar.visibility     = View.VISIBLE
+            topTitleBar.visibility = View.GONE
             splitDimOverlay.visibility = View.VISIBLE
             topTitleBar.setBackgroundColor(Color.parseColor("#1a1a1a"))
             topTitleBar.setTextColor(Color.parseColor("#555555"))
