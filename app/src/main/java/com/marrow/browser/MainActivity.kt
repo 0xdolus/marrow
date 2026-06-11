@@ -898,13 +898,100 @@ class MainActivity : AppCompatActivity() {
 
     private fun showEnginePicker() {
         val engines = SEARCH_ENGINES.keys.toList()
-        val popup = android.widget.PopupMenu(this, enginePickerBtn)
-        engines.forEach { name -> popup.menu.add(name) }
-        popup.setOnMenuItemClickListener { item ->
-            selectedEngine = item.title.toString()
-            true
+
+        val dialog = android.app.Dialog(this, android.R.style.Theme_Black_NoTitleBar)
+
+        val container = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setBackgroundColor(Color.parseColor("#161616"))
+            val r = (16 * resources.displayMetrics.density).toInt()
+            background = android.graphics.drawable.GradientDrawable().also {
+                it.setColor(Color.parseColor("#161616"))
+                it.cornerRadius = r.toFloat()
+            }
         }
-        popup.show()
+
+        val scroll = ScrollView(this).apply {
+            isScrollbarFadingEnabled = true
+        }
+        val list = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+
+        engines.forEachIndexed { index, name ->
+            val row = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = android.view.Gravity.CENTER_VERTICAL
+                val pad = (11 * resources.displayMetrics.density).toInt()
+                val padH = (16 * resources.displayMetrics.density).toInt()
+                setPadding(padH, pad, padH, pad)
+                setBackgroundColor(if (name == selectedEngine) Color.parseColor("#1a221a") else Color.TRANSPARENT)
+                isClickable = true
+                isFocusable = true
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                    foreground = android.graphics.drawable.RippleDrawable(
+                        android.content.res.ColorStateList.valueOf(Color.parseColor("#2a2a2a")),
+                        null, null
+                    )
+                }
+            }
+            val label = TextView(this).apply {
+                text = name
+                textSize = 13.5f
+                setTextColor(if (name == selectedEngine) Color.parseColor("#e8e8e8") else Color.parseColor("#c8c8c8"))
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            }
+            val dot = View(this).apply {
+                val size = (6 * resources.displayMetrics.density).toInt()
+                layoutParams = LinearLayout.LayoutParams(size, size)
+                background = android.graphics.drawable.GradientDrawable().also {
+                    it.shape = android.graphics.drawable.GradientDrawable.OVAL
+                    it.setColor(Color.parseColor("#4a8c4a"))
+                }
+                visibility = if (name == selectedEngine) View.VISIBLE else View.GONE
+            }
+            row.addView(label)
+            row.addView(dot)
+
+            if (index > 0) {
+                val divider = View(this).apply {
+                    layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        (1 * resources.displayMetrics.density).toInt()
+                    )
+                    setBackgroundColor(Color.parseColor("#1f1f1f"))
+                }
+                list.addView(divider)
+            }
+
+            row.setOnClickListener {
+                selectedEngine = name
+                dialog.dismiss()
+            }
+            list.addView(row)
+        }
+
+        scroll.addView(list)
+        container.addView(scroll)
+
+        dialog.setContentView(container)
+        dialog.window?.apply {
+            setBackgroundDrawable(android.graphics.drawable.ColorDrawable(Color.TRANSPARENT))
+            val dm = resources.displayMetrics
+            val width = (dm.widthPixels * 0.72).toInt()
+            val maxH = (220 * dm.density).toInt()
+            setLayout(width, android.view.WindowManager.LayoutParams.WRAP_CONTENT)
+            scroll.layoutParams = FrameLayout.LayoutParams(
+                android.view.ViewGroup.LayoutParams.MATCH_PARENT, maxH
+            )
+            // position near the enginePickerBtn
+            val loc = IntArray(2)
+            enginePickerBtn.getLocationInWindow(loc)
+            val attr = attributes
+            attr.gravity = android.view.Gravity.TOP or android.view.Gravity.START
+            attr.x = loc[0]
+            attr.y = loc[1] + enginePickerBtn.height
+            attributes = attr
+        }
+        dialog.show()
     }
 
     private fun extractSearchQuery(url: String): String {
