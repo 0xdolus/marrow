@@ -116,13 +116,6 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        fullscreenContainer = FrameLayout(this).apply {
-            visibility = View.GONE
-        }
-        addContentView(
-            fullscreenContainer,
-            FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.MATCH_PARENT,
                 FrameLayout.LayoutParams.MATCH_PARENT
             )
         )
@@ -211,6 +204,7 @@ class MainActivity : AppCompatActivity() {
         topTitleBar         = findViewById(R.id.topTitleBar)
         bottomTitleBar      = findViewById(R.id.bottomTitleBar)
         splitDimOverlay     = findViewById(R.id.splitDimOverlay)
+        fullscreenContainer = findViewById(R.id.fullscreenContainer)
         bottomPaneContainer = findViewById(R.id.bottomPaneContainer)
     }
 
@@ -321,7 +315,7 @@ class MainActivity : AppCompatActivity() {
         topModeRow.visibility = View.GONE
 
         webView.setOnScrollChangeListener { _, _, scrollY, _, oldScrollY ->
-            if (scrollY > oldScrollY + 20) bottomChrome.visibility = View.GONE
+            if (scrollY > oldScrollY + 20) bottomChrome.visibility = View.INVISIBLE
             else if (scrollY < oldScrollY - 20) bottomChrome.visibility = View.VISIBLE
         }
         webView.setOnTouchListener { _, _ ->
@@ -561,6 +555,7 @@ class MainActivity : AppCompatActivity() {
     private fun applyFullSettings(wv: WebView) {
         wv.settings.apply {
             javaScriptEnabled                = true
+            setSupportMultipleWindows(true)
             blockNetworkImage                = false
             loadsImagesAutomatically         = true
             domStorageEnabled                = true

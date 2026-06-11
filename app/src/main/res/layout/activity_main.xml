@@ -55,7 +55,13 @@
                     android:background="@drawable/bg_pip"
                     android:layout_marginEnd="4dp" />
 
-            </LinearLayout>
+                <FrameLayout
+        android:id="@+id/fullscreenContainer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone" />
+
+</LinearLayout>
 
             <!-- Memory banner -->
             <TextView
@@ -89,7 +95,13 @@
 
             </FrameLayout>
 
-        </LinearLayout>
+            <FrameLayout
+        android:id="@+id/fullscreenContainer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone" />
+
+</LinearLayout>
 
         <!-- SPLIT DIVIDER (draggable) -->
         <View
@@ -131,9 +143,21 @@
                 android:layout_height="0dp"
                 android:layout_weight="1" />
 
-        </LinearLayout>
+            <FrameLayout
+        android:id="@+id/fullscreenContainer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone" />
 
-    </LinearLayout>
+</LinearLayout>
+
+        <FrameLayout
+        android:id="@+id/fullscreenContainer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone" />
+
+</LinearLayout>
 
     <!-- BOTTOM CHROME -->
     <LinearLayout
@@ -251,7 +275,13 @@
                 android:layout_marginStart="6dp"
                 android:background="@drawable/bg_tab_pill" />
 
-        </LinearLayout>
+            <FrameLayout
+        android:id="@+id/fullscreenContainer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone" />
+
+</LinearLayout>
 
         <!-- Exit split row -->
         <TextView
@@ -268,7 +298,13 @@
             android:background="@drawable/bg_tab_pill"
             android:visibility="gone" />
 
-    </LinearLayout>
+        <FrameLayout
+        android:id="@+id/fullscreenContainer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone" />
+
+</LinearLayout>
 
     <!-- Tab overlay -->
     <!-- Hidden container for popup dummy WebView; 0x0 so it's invisible -->
@@ -283,6 +319,12 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:background="#0f0f0f"
+        android:visibility="gone" />
+
+    <FrameLayout
+        android:id="@+id/fullscreenContainer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
         android:visibility="gone" />
 
 </LinearLayout>
