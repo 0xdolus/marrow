@@ -149,7 +149,6 @@ class MainActivity : AppCompatActivity() {
         setupUrlBar()
         setupButtons()
         checkForUpdate()
-
         navigateTo(HOME, webView)
     }
 
@@ -799,8 +798,7 @@ class MainActivity : AppCompatActivity() {
     // ════════════════════════════════════════════════════════════
     // Buttons
     // ════════════════════════════════════════════════════════════
-    private fun setupButtons()
-        checkForUpdate() {
+    private fun setupButtons() {
         tabCountBtn.setOnClickListener {
             if (tabOverlay.visibility == View.VISIBLE) {
                 tabOverlay.visibility = View.GONE
@@ -856,7 +854,7 @@ class MainActivity : AppCompatActivity() {
             try {
                 val url = java.net.URL(GITHUB_RELEASES)
                 val json = url.readText()
-                val tag = Regex(""tag_name":\s*"v?([0-9.]+)"").find(json)?.groupValues?.get(1) ?: return@Thread
+                val tag = Regex("\"tag_name\":\\s*\"v?([0-9.]+)\"").find(json)?.groupValues?.get(1) ?: return@Thread
                 val remote = tag.replace(".", "").trimStart('0').toIntOrNull() ?: return@Thread
                 val local = packageManager.getPackageInfo(packageName, 0).versionCode
                 if (remote > local) runOnUiThread {
