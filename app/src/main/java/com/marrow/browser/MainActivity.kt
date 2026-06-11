@@ -67,7 +67,6 @@ class MainActivity : AppCompatActivity() {
 
     // ── Tab + memory ─────────────────────────────────────────────
     private lateinit var tabManager: TabManager
-    private lateinit var memoryMonitor: MemoryMonitor
     private lateinit var threadClient: ThreadModeClient
 
     // ── Popup redirect system ─────────────────────────────────────
@@ -143,7 +142,6 @@ class MainActivity : AppCompatActivity() {
 
         bindViews()
         setupTabManager()
-        setupMemoryMonitor()
         setupMainWebView()
         setupSplitWebView()
         setupDividerDrag()
@@ -328,7 +326,6 @@ class MainActivity : AppCompatActivity() {
 
     private fun enterFullscreen() {
         isFullscreen = true
-        hideChrome()
         if (android.os.Build.VERSION.SDK_INT >= 30) {
             window.insetsController?.let {
                 it.hide(
@@ -350,7 +347,6 @@ class MainActivity : AppCompatActivity() {
 
     private fun exitFullscreen() {
         isFullscreen = false
-        showChrome()
         if (android.os.Build.VERSION.SDK_INT >= 30) {
             window.insetsController?.show(
                 android.view.WindowInsets.Type.statusBars() or
