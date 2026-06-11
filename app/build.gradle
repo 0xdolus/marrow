@@ -15,9 +15,25 @@ android {
         versionName "0.3.0"
     }
 
+    signingConfigs {
+        release {
+            def ksPath = System.getenv("KEYSTORE_PATH")
+            if (ksPath != null) {
+                storeFile file(ksPath)
+                storePassword System.getenv("KEYSTORE_PASS")
+                keyAlias System.getenv("KEY_ALIAS")
+                keyPassword System.getenv("KEY_PASS")
+            }
+        }
+    }
+
     buildTypes {
         debug {
             debuggable true
+            minifyEnabled false
+        }
+        release {
+            signingConfig signingConfigs.release
             minifyEnabled false
         }
     }

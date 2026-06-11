@@ -23,11 +23,19 @@ jobs:
         with:
           gradle-version: '8.4'
 
-      - name: Build debug APK
-        run: gradle assembleDebug
+      - name: Decode keystore
+        run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > app/release.jks
 
-      - name: Upload APK artifact
+      - name: Build signed release APK
+        env:
+          KEYSTORE_PATH: release.jks
+          KEYSTORE_PASS: ${{ secrets.KEYSTORE_PASS }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASS: ${{ secrets.KEY_PASS }}
+        run: gradle assembleRelease
+
+      - name: Upload signed APK
         uses: actions/upload-artifact@v4
         with:
-          name: marrow-debug
-          path: app/build/outputs/apk/debug/app-debug.apk
+          name: marrow-release
+          path: app/build/outputs/apk/release/app-release.apk
