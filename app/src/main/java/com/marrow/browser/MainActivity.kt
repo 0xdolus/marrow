@@ -59,6 +59,9 @@ class MainActivity : AppCompatActivity() {
     private var topWeightAtDragStart = 1f
     private var bottomWeightAtDragStart = 1f
 
+    // ── UI Fullscreen (long-press URL bar) ───────────────────────
+    private var isFullscreen = false
+
     // ── Fullscreen video ─────────────────────────────────────────
     private var customView: View? = null
     private var customViewCallback: WebChromeClient.CustomViewCallback? = null
@@ -389,6 +392,42 @@ class MainActivity : AppCompatActivity() {
             .setDuration(200)
             .withEndAction { bottomChrome.visibility = View.GONE }
             .start()
+    }
+
+    private fun enterFullscreen() {
+        isFullscreen = true
+        hideChrome()
+        if (android.os.Build.VERSION.SDK_INT >= 30) {
+            window.insetsController?.let {
+                it.hide(
+                    android.view.WindowInsets.Type.statusBars() or
+                    android.view.WindowInsets.Type.navigationBars()
+                )
+                it.systemBarsBehavior =
+                    android.view.WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            }
+        } else {
+            @Suppress("DEPRECATION")
+            window.decorView.systemUiVisibility = (
+                View.SYSTEM_UI_FLAG_FULLSCREEN or
+                View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
+                View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+            )
+        }
+    }
+
+    private fun exitFullscreen() {
+        isFullscreen = false
+        showChrome()
+        if (android.os.Build.VERSION.SDK_INT >= 30) {
+            window.insetsController?.show(
+                android.view.WindowInsets.Type.statusBars() or
+                android.view.WindowInsets.Type.navigationBars()
+            )
+        } else {
+            @Suppress("DEPRECATION")
+            window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_VISIBLE
+        }
     }
 
     // ════════════════════════════════════════════════════════════
@@ -1248,4 +1287,5 @@ class MainActivity : AppCompatActivity() {
         } catch (e: Exception) { url }
     }
 }
+
 
