@@ -55,12 +55,6 @@
                     android:background="@drawable/bg_pip"
                     android:layout_marginEnd="4dp" />
 
-                <FrameLayout
-        android:id="@+id/fullscreenContainer"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:visibility="gone" />
-
 </LinearLayout>
 
             <!-- Memory banner -->
@@ -94,12 +88,6 @@
                     android:visibility="gone" />
 
             </FrameLayout>
-
-            <FrameLayout
-        android:id="@+id/fullscreenContainer"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:visibility="gone" />
 
 </LinearLayout>
 
@@ -143,19 +131,7 @@
                 android:layout_height="0dp"
                 android:layout_weight="1" />
 
-            <FrameLayout
-        android:id="@+id/fullscreenContainer"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:visibility="gone" />
-
 </LinearLayout>
-
-        <FrameLayout
-        android:id="@+id/fullscreenContainer"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:visibility="gone" />
 
 </LinearLayout>
 
@@ -275,12 +251,6 @@
                 android:layout_marginStart="6dp"
                 android:background="@drawable/bg_tab_pill" />
 
-            <FrameLayout
-        android:id="@+id/fullscreenContainer"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:visibility="gone" />
-
 </LinearLayout>
 
         <!-- Exit split row -->
@@ -297,12 +267,6 @@
             android:layout_marginTop="4dp"
             android:background="@drawable/bg_tab_pill"
             android:visibility="gone" />
-
-        <FrameLayout
-        android:id="@+id/fullscreenContainer"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:visibility="gone" />
 
 </LinearLayout>
 
