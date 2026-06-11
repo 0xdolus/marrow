@@ -336,8 +336,9 @@ class MainActivity : AppCompatActivity() {
         topModeRow.visibility = View.GONE
 
         webView.setOnScrollChangeListener { _, _, scrollY, _, oldScrollY ->
-            if (scrollY > oldScrollY + 20) bottomChrome.visibility = View.INVISIBLE
-            else if (scrollY < oldScrollY - 20) bottomChrome.visibility = View.VISIBLE
+            if (urlInput.hasFocus()) return@setOnScrollChangeListener
+            if (scrollY > oldScrollY + 20) hideChrome()
+            else if (scrollY < oldScrollY - 20) showChrome()
         }
         webView.setOnTouchListener { _, _ ->
             if (isSplitMode && splitPaneActive) setActivePane(false)
@@ -345,6 +346,29 @@ class MainActivity : AppCompatActivity() {
         }
 
         setupDownloadListener()
+    }
+
+    // ════════════════════════════════════════════════════════════
+    // Chrome show / hide helpers
+    // ════════════════════════════════════════════════════════════
+    private fun showChrome() {
+        if (bottomChrome.visibility == View.VISIBLE && bottomChrome.translationY == 0f) return
+        bottomChrome.visibility = View.VISIBLE
+        bottomChrome.animate()
+            .translationY(0f)
+            .alpha(1f)
+            .setDuration(200)
+            .start()
+    }
+
+    private fun hideChrome() {
+        if (bottomChrome.visibility == View.GONE) return
+        bottomChrome.animate()
+            .translationY(bottomChrome.height.toFloat())
+            .alpha(0f)
+            .setDuration(200)
+            .withEndAction { bottomChrome.visibility = View.GONE }
+            .start()
     }
 
     // ════════════════════════════════════════════════════════════
@@ -725,6 +749,7 @@ class MainActivity : AppCompatActivity() {
     private fun setupUrlBar() {
         urlInput.setOnFocusChangeListener { _, hasFocus ->
             if (hasFocus) {
+                showChrome()
                 val realUrl = if (isSplitMode && splitPaneActive)
                     splitWebView.url ?: ""
                 else
@@ -1113,3 +1138,4 @@ class MainActivity : AppCompatActivity() {
         } catch (e: Exception) { url }
     }
 }
+
