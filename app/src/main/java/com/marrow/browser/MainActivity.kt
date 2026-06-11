@@ -36,6 +36,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var pipDot: TextView
     private lateinit var memBanner: TextView
     private lateinit var imgSearchBtn: TextView
+    private lateinit var enginePickerBtn: TextView
     private lateinit var paneIndicator: View
 
     // ── Split views ──────────────────────────────────────────────
@@ -77,12 +78,34 @@ class MainActivity : AppCompatActivity() {
     // Toggle with a long-press on the tab-count button.
     // When active: no-cache, no history, cleared on exit.
     private var privacyModeActive = false
+    private var selectedEngine = "Google"
 
 
     companion object {
         const val HOME              = "file:///android_asset/home.html"
         const val DDG_BASE          = "https://yandex.com/search/?text="
         const val DDG_IMAGE_BASE    = "https://yandex.com/images/search?text="
+
+        val SEARCH_ENGINES = mapOf(
+            "Google"       to "https://www.google.com/search?q=",
+            "DuckDuckGo"   to "https://duckduckgo.com/?q=",
+            "Brave Search" to "https://search.brave.com/search?q=",
+            "Perplexity"   to "https://www.perplexity.ai/search?q=",
+            "Bing"         to "https://www.bing.com/search?q=",
+            "Kagi"         to "https://kagi.com/search?q=",
+            "Startpage"    to "https://www.startpage.com/search?q=",
+            "Ecosia"       to "https://www.ecosia.org/search?q=",
+            "Qwant"        to "https://www.qwant.com/?q="
+        )
+
+        val IMAGE_ENGINES = mapOf(
+            "Google"       to "https://www.google.com/search?tbm=isch&q=",
+            "DuckDuckGo"   to "https://duckduckgo.com/?ia=images&iax=images&q=",
+            "Brave Search" to "https://search.brave.com/images?q=",
+            "Bing"         to "https://www.bing.com/images/search?q=",
+            "Ecosia"       to "https://www.ecosia.org/images?q=",
+            "Qwant"        to "https://www.qwant.com/?t=images&q="
+        )
         const val COLOR_TOP_PANE    = "#5a9a5a"
         const val COLOR_BOTTOM_PANE = "#8ab8d8"
         const val COLOR_PRIVACY     = "#4a7fbf"   // blue pip when privacy mode on
@@ -189,6 +212,7 @@ class MainActivity : AppCompatActivity() {
         pipDot              = findViewById(R.id.pipDot)
         memBanner           = findViewById(R.id.memBanner)
         imgSearchBtn        = findViewById(R.id.imgSearchBtn)
+        enginePickerBtn     = findViewById(R.id.enginePickerBtn)
         paneIndicator       = findViewById(R.id.paneIndicator)
 
         splitWebView        = findViewById(R.id.splitWebView)
@@ -745,7 +769,8 @@ class MainActivity : AppCompatActivity() {
         // plain search term instead to prevent local file disclosure.
         val tldRegex = Regex("^[^\\s.]+\\.[a-zA-Z]{2,}(\\.[a-zA-Z]{2,})?(/.*)?$")
         if (!input.contains(" ") && tldRegex.matches(input)) return "https://$input"
-        return DDG_BASE + URLEncoder.encode(input, "UTF-8")
+        val base = SEARCH_ENGINES[selectedEngine] ?: DDG_BASE
+        return base + URLEncoder.encode(input, "UTF-8")
     }
 
     private fun hideKeyboard() {
@@ -788,6 +813,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         imgSearchBtn.setOnClickListener { searchImages() }
+        enginePickerBtn.setOnClickListener { showEnginePicker() }
         splitBtn.setOnClickListener     { enterSplitMode() }
         exitSplitBtn.setOnClickListener { exitSplitMode() }
 
@@ -806,7 +832,8 @@ class MainActivity : AppCompatActivity() {
                 val query = value?.trim('"') ?: ""
                 if (query.isNotBlank()) {
                     runOnUiThread {
-                        navigateTo(DDG_IMAGE_BASE + URLEncoder.encode(query, "UTF-8"), activeWebView())
+                        val imgBase = IMAGE_ENGINES[selectedEngine] ?: SEARCH_ENGINES[selectedEngine] ?: DDG_IMAGE_BASE
+                        navigateTo(imgBase + URLEncoder.encode(query, "UTF-8"), activeWebView())
                     }
                 }
             }
@@ -817,7 +844,19 @@ class MainActivity : AppCompatActivity() {
             urlInput.text.toString().trim()
         }
         if (query.isBlank()) return
-        navigateTo(DDG_IMAGE_BASE + URLEncoder.encode(query, "UTF-8"), activeWebView())
+        val imgBase = IMAGE_ENGINES[selectedEngine] ?: SEARCH_ENGINES[selectedEngine] ?: DDG_IMAGE_BASE
+        navigateTo(imgBase + URLEncoder.encode(query, "UTF-8"), activeWebView())
+    }
+
+    private fun showEnginePicker() {
+        val engines = SEARCH_ENGINES.keys.toList()
+        val popup = android.widget.PopupMenu(this, enginePickerBtn)
+        engines.forEach { name -> popup.menu.add(name) }
+        popup.setOnMenuItemClickListener { item ->
+            selectedEngine = item.title.toString()
+            true
+        }
+        popup.show()
     }
 
     private fun extractSearchQuery(url: String): String {
