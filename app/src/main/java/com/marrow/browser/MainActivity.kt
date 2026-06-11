@@ -320,10 +320,9 @@ class MainActivity : AppCompatActivity() {
         applyFullSettings(webView)
         topModeRow.visibility = View.GONE
 
-        var lastScrollY = 0
         webView.setOnScrollChangeListener { _, _, scrollY, _, oldScrollY ->
-            if (scrollY > oldScrollY + 10) bottomChrome.animate().translationY(bottomChrome.height.toFloat()).setDuration(200).start()
-            else if (scrollY < oldScrollY - 10) bottomChrome.animate().translationY(0f).setDuration(200).start()
+            if (scrollY > oldScrollY + 20) bottomChrome.visibility = View.GONE
+            else if (scrollY < oldScrollY - 20) bottomChrome.visibility = View.VISIBLE
         }
         webView.setOnTouchListener { _, _ ->
             if (isSplitMode && splitPaneActive) setActivePane(false)
