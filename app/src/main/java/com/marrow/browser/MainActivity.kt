@@ -559,6 +559,8 @@ class MainActivity : AppCompatActivity() {
             loadsImagesAutomatically         = true
             domStorageEnabled                = true
 
+            userAgentString = userAgentString.replace("; wv", "")
+
             // ── Security fixes ──────────────────────────────────
             mediaPlaybackRequiresUserGesture = true   // prevent autoplaying media
             @Suppress("DEPRECATION")
