@@ -863,12 +863,13 @@ class MainActivity : AppCompatActivity() {
                 tabOverlay.visibility = View.VISIBLE
             }
         }
-        // Long-press tab count button → toggle privacy mode
+        // Long-press tab count button → new tab
         tabCountBtn.setOnLongClickListener {
-            togglePrivacyMode()
+            openNewTab()
             true
         }
 
+        chromeBg.setOnLongClickListener { togglePrivacyMode(); true }
         splitBtn.setOnClickListener     { enterSplitMode() }
         exitSplitBtn.setOnClickListener { exitSplitMode() }
 
@@ -1098,15 +1099,20 @@ class MainActivity : AppCompatActivity() {
                 )
             })
 
-            card.addView(TextView(this).apply {
-                text = "✕"
-                textSize = 14f
-                setTextColor(Color.parseColor("#c8bfaf"))
-                setPadding(12, 0, 0, 0)
-                setOnClickListener { closeTab(tab.id) }
-            })
 
             card.setOnClickListener { switchToTab(tab.id) }
+            card.setOnLongClickListener { closeTab(tab.id); true }
+            var swipeStartX = 0f
+            card.setOnTouchListener { v, ev ->
+                when (ev.action) {
+                    android.view.MotionEvent.ACTION_DOWN -> { swipeStartX = ev.x; false }
+                    android.view.MotionEvent.ACTION_UP -> {
+                        if (swipeStartX - ev.x > 150) { closeTab(tab.id); true }
+                        else false
+                    }
+                    else -> false
+                }
+            }
 
             list.addView(card, LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
