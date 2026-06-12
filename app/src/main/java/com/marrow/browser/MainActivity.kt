@@ -822,12 +822,12 @@ class MainActivity : AppCompatActivity() {
             openNewTab()
             true
         }
-        chromeBg.setOnLongClickListener {
+        bottomChrome.setOnLongClickListener {
             tabManager.getActiveTab()?.let { closeTab(it.id) }
             true
         }
         var chromSwipeStartX = 0f
-        chromeBg.setOnTouchListener { _, ev ->
+        bottomChrome.setOnTouchListener { _, ev ->
             when (ev.action) {
                 android.view.MotionEvent.ACTION_DOWN -> { chromSwipeStartX = ev.x; false }
                 android.view.MotionEvent.ACTION_UP -> {
