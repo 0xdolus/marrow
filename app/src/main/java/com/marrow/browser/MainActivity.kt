@@ -773,6 +773,25 @@ class MainActivity : AppCompatActivity() {
             } else false
         }
 
+        var urlSwipeStartX = 0f
+        urlInput.setOnTouchListener { _, ev ->
+            when (ev.action) {
+                android.view.MotionEvent.ACTION_DOWN -> { urlSwipeStartX = ev.x; false }
+                android.view.MotionEvent.ACTION_UP -> {
+                    val diff = urlSwipeStartX - ev.x
+                    val userTabs = tabManager.getUserTabs()
+                    val currentIndex = userTabs.indexOfFirst { it.id == tabManager.activeTabId }
+                    when {
+                        diff > 150 && currentIndex < userTabs.size - 1 ->
+                            { switchToTab(userTabs[currentIndex + 1].id); true }
+                        diff < -150 && currentIndex > 0 ->
+                            { switchToTab(userTabs[currentIndex - 1].id); true }
+                        else -> false
+                    }
+                }
+                else -> false
+            }
+        }
         urlInput.setOnLongClickListener {
             togglePrivacyMode()
             true
@@ -823,29 +842,7 @@ class MainActivity : AppCompatActivity() {
             openNewTab()
             true
         }
-        bottomChrome.setOnLongClickListener {
-            tabManager.getActiveTab()?.let { closeTab(it.id) }
-            true
-        }
-        var chromSwipeStartX = 0f
-        bottomChrome.setOnTouchListener { _, ev ->
-            when (ev.action) {
-                android.view.MotionEvent.ACTION_DOWN -> { chromSwipeStartX = ev.x; false }
-                android.view.MotionEvent.ACTION_UP -> {
-                    val diff = chromSwipeStartX - ev.x
-                    val userTabs = tabManager.getUserTabs()
-                    val currentIndex = userTabs.indexOfFirst { it.id == tabManager.activeTabId }
-                    when {
-                        diff > 150 && currentIndex < userTabs.size - 1 ->
-                            { switchToTab(userTabs[currentIndex + 1].id); true }
-                        diff < -150 && currentIndex > 0 ->
-                            { switchToTab(userTabs[currentIndex - 1].id); true }
-                        else -> false
-                    }
-                }
-                else -> false
-            }
-        }
+
         splitBtn.setOnClickListener     { enterSplitMode() }
         exitSplitBtn.setOnClickListener { exitSplitMode() }
 
