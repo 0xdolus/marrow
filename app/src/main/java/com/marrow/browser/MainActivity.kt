@@ -773,15 +773,14 @@ class MainActivity : AppCompatActivity() {
             } else false
         }
 
-        var urlSwipeStartX = 0f
-        urlInput.setOnTouchListener { _, ev ->
-            when (ev.action) {
-                android.view.MotionEvent.ACTION_DOWN -> { urlSwipeStartX = ev.x; false }
-                android.view.MotionEvent.ACTION_UP -> {
-                    val diff = urlSwipeStartX - ev.x
+        val urlSwipeDetector = android.view.GestureDetector(this,
+            object : android.view.GestureDetector.SimpleOnGestureListener() {
+                override fun onFling(e1: android.view.MotionEvent?, e2: android.view.MotionEvent,
+                                     vX: Float, vY: Float): Boolean {
+                    val diff = (e1?.x ?: 0f) - e2.x
                     val userTabs = tabManager.getUserTabs()
                     val currentIndex = userTabs.indexOfFirst { it.id == tabManager.activeTabId }
-                    when {
+                    return when {
                         diff > 150 && currentIndex < userTabs.size - 1 ->
                             { switchToTab(userTabs[currentIndex + 1].id); true }
                         diff < -150 && currentIndex > 0 ->
@@ -789,8 +788,10 @@ class MainActivity : AppCompatActivity() {
                         else -> false
                     }
                 }
-                else -> false
-            }
+            })
+        urlInput.setOnTouchListener { v, ev ->
+            urlSwipeDetector.onTouchEvent(ev)
+            false
         }
         urlInput.setOnLongClickListener {
             togglePrivacyMode()
