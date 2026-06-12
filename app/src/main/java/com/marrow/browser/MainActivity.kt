@@ -91,6 +91,7 @@ class MainActivity : AppCompatActivity() {
     lastY = y;
     if (delta > 0) { accDown += delta; accUp = 0; }
     else           { accUp += Math.abs(delta); accDown = 0; }
+    if (!hidden && accDown > 80) {
       hidden = true; accDown = 0;
       ScrollBridge.onScrollDirectionChanged('down');
     } else if (hidden && (accUp > 50 || y === 0)) {
