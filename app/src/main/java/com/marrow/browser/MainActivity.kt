@@ -75,7 +75,7 @@ class MainActivity : AppCompatActivity() {
     // Toggle with a long-press on the tab-count button.
     // When active: no-cache, no history, cleared on exit.
     private var privacyModeActive = false
-    private var selectedEngine = "Google"
+    private var selectedEngine = "Google" // overwritten in onCreate from prefs
     private val GITHUB_RELEASES = "https://api.github.com/repos/0xdolus/marrow/releases/latest"
 
 
@@ -102,7 +102,6 @@ class MainActivity : AppCompatActivity() {
 })();
 """.trimIndent()
         const val DDG_BASE          = "https://yandex.com/search/?text="
-        const val DDG_IMAGE_BASE    = "https://yandex.com/images/search?text="
 
         val SEARCH_ENGINES = mapOf(
             "Google"       to "https://www.google.com/search?q=",
@@ -116,14 +115,7 @@ class MainActivity : AppCompatActivity() {
             "Qwant"        to "https://www.qwant.com/?q="
         )
 
-        val IMAGE_ENGINES = mapOf(
-            "Google"       to "https://www.google.com/search?tbm=isch&q=",
-            "DuckDuckGo"   to "https://duckduckgo.com/?ia=images&iax=images&q=",
-            "Brave Search" to "https://search.brave.com/images?q=",
-            "Bing"         to "https://www.bing.com/images/search?q=",
-            "Ecosia"       to "https://www.ecosia.org/images?q=",
-            "Qwant"        to "https://www.qwant.com/?t=images&q="
-        )
+
         const val COLOR_TOP_PANE    = "#5a9a5a"
         const val COLOR_BOTTOM_PANE = "#8ab8d8"
         const val COLOR_PRIVACY     = "#4a7fbf"   // blue pip when privacy mode on
@@ -247,6 +239,11 @@ class MainActivity : AppCompatActivity() {
         tabManager = TabManager()
         tabManager.openTab(HOME)
         renderTabStrip()
+    }
+
+    private fun loadEnginePreference() {
+        val prefs = getSharedPreferences("marrow_prefs", MODE_PRIVATE)
+        selectedEngine = prefs.getString("selected_engine", "Brave Search") ?: "Brave Search"
     }
 
     // ════════════════════════════════════════════════════════════
@@ -883,25 +880,23 @@ class MainActivity : AppCompatActivity() {
     private fun searchImages() {
         val activeUrl = activeWebView().url ?: ""
         if (activeUrl == HOME) {
-            // Pull query from the home page HTML input
             activeWebView().evaluateJavascript("document.getElementById('q').value") { value ->
                 val query = value?.trim('"') ?: ""
                 if (query.isNotBlank()) {
                     runOnUiThread {
-                        val imgBase = IMAGE_ENGINES[selectedEngine] ?: SEARCH_ENGINES[selectedEngine] ?: DDG_IMAGE_BASE
-                        navigateTo(imgBase + URLEncoder.encode(query, "UTF-8"), activeWebView())
+                        val base = SEARCH_ENGINES[selectedEngine] ?: return@runOnUiThread
+                        navigateTo(base + URLEncoder.encode(query, "UTF-8"), activeWebView())
                     }
                 }
             }
             return
         }
-        // Extract query from the real page URL
         val query = extractSearchQuery(activeUrl).ifBlank {
             urlInput.text.toString().trim()
         }
         if (query.isBlank()) return
-        val imgBase = IMAGE_ENGINES[selectedEngine] ?: SEARCH_ENGINES[selectedEngine] ?: DDG_IMAGE_BASE
-        navigateTo(imgBase + URLEncoder.encode(query, "UTF-8"), activeWebView())
+        val base = SEARCH_ENGINES[selectedEngine] ?: return
+        navigateTo(base + URLEncoder.encode(query, "UTF-8"), activeWebView())
     }
 
     private fun checkForUpdate() {
@@ -994,6 +989,8 @@ class MainActivity : AppCompatActivity() {
 
             row.setOnClickListener {
                 selectedEngine = name
+                getSharedPreferences("marrow_prefs", MODE_PRIVATE)
+                    .edit().putString("selected_engine", name).apply()
                 dialog.dismiss()
             }
             list.addView(row)
