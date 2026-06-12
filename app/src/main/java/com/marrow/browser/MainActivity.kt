@@ -777,19 +777,21 @@ class MainActivity : AppCompatActivity() {
             object : android.view.GestureDetector.SimpleOnGestureListener() {
                 override fun onFling(e1: android.view.MotionEvent?, e2: android.view.MotionEvent,
                                      vX: Float, vY: Float): Boolean {
-                    val diff = (e1?.x ?: 0f) - e2.x
+                    val diffX = (e1?.x ?: 0f) - e2.x
+                    val diffY = (e1?.y ?: 0f) - e2.y
+                    if (Math.abs(diffX) < Math.abs(diffY)) return false // vertical fling, ignore
                     val userTabs = tabManager.getUserTabs()
                     val currentIndex = userTabs.indexOfFirst { it.id == tabManager.activeTabId }
                     return when {
-                        diff > 150 && currentIndex < userTabs.size - 1 ->
-                            { switchToTab(userTabs[currentIndex + 1].id); true }
-                        diff < -150 && currentIndex > 0 ->
-                            { switchToTab(userTabs[currentIndex - 1].id); true }
+                        diffX > 150 && currentIndex < userTabs.size - 1 ->
+                            { runOnUiThread { switchToTab(userTabs[currentIndex + 1].id) }; true }
+                        diffX < -150 && currentIndex > 0 ->
+                            { runOnUiThread { switchToTab(userTabs[currentIndex - 1].id) }; true }
                         else -> false
                     }
                 }
             })
-        urlInput.setOnTouchListener { v, ev ->
+        bottomChrome.setOnTouchListener { _, ev ->
             urlSwipeDetector.onTouchEvent(ev)
             false
         }
