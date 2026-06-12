@@ -55,7 +55,6 @@ class MainActivity : AppCompatActivity() {
     private var bottomWeightAtDragStart = 1f
 
     // ── UI Fullscreen (long-press URL bar) ───────────────────────
-    private var isFullscreen = false
 
     // ── Fullscreen video ─────────────────────────────────────────
     private var customView: View? = null
@@ -336,39 +335,7 @@ class MainActivity : AppCompatActivity() {
 
 
 
-    private fun enterFullscreen() {
-        isFullscreen = true
-        if (android.os.Build.VERSION.SDK_INT >= 30) {
-            window.insetsController?.let {
-                it.hide(
-                    android.view.WindowInsets.Type.statusBars() or
-                    android.view.WindowInsets.Type.navigationBars()
-                )
-                it.systemBarsBehavior =
-                    android.view.WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-            }
-        } else {
-            @Suppress("DEPRECATION")
-            window.decorView.systemUiVisibility = (
-                View.SYSTEM_UI_FLAG_FULLSCREEN or
-                View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
-                View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-            )
-        }
-    }
 
-    private fun exitFullscreen() {
-        isFullscreen = false
-        if (android.os.Build.VERSION.SDK_INT >= 30) {
-            window.insetsController?.show(
-                android.view.WindowInsets.Type.statusBars() or
-                android.view.WindowInsets.Type.navigationBars()
-            )
-        } else {
-            @Suppress("DEPRECATION")
-            window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_VISIBLE
-        }
-    }
 
     // ════════════════════════════════════════════════════════════
     // Download listener
@@ -772,7 +739,6 @@ class MainActivity : AppCompatActivity() {
         urlInput.setOnFocusChangeListener { _, hasFocus ->
             if (hasFocus) showChrome()
             if (hasFocus) {
-                exitFullscreen()
                 val realUrl = if (isSplitMode && splitPaneActive)
                     splitWebView.url ?: ""
                 else
@@ -807,7 +773,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         urlInput.setOnLongClickListener {
-            if (isFullscreen) exitFullscreen() else enterFullscreen()
+            togglePrivacyMode()
             true
         }
     }
@@ -852,21 +818,33 @@ class MainActivity : AppCompatActivity() {
     // Buttons
     // ════════════════════════════════════════════════════════════
     private fun setupButtons() {
-        tabCountBtn.setOnClickListener {
-            if (tabOverlay.visibility == View.VISIBLE) {
-                tabOverlay.visibility = View.GONE
-            } else {
-                renderTabOverlay()
-                tabOverlay.visibility = View.VISIBLE
-            }
-        }
-        // Long-press tab count button → new tab
-        tabCountBtn.setOnLongClickListener {
+                tabCountBtn.setOnLongClickListener {
             openNewTab()
             true
         }
-
-        chromeBg.setOnLongClickListener { togglePrivacyMode(); true }
+        chromeBg.setOnLongClickListener {
+            tabManager.getActiveTab()?.let { closeTab(it.id) }
+            true
+        }
+        var chromSwipeStartX = 0f
+        chromeBg.setOnTouchListener { _, ev ->
+            when (ev.action) {
+                android.view.MotionEvent.ACTION_DOWN -> { chromSwipeStartX = ev.x; false }
+                android.view.MotionEvent.ACTION_UP -> {
+                    val diff = chromSwipeStartX - ev.x
+                    val userTabs = tabManager.getUserTabs()
+                    val currentIndex = userTabs.indexOfFirst { it.id == tabManager.activeTabId }
+                    when {
+                        diff > 150 && currentIndex < userTabs.size - 1 ->
+                            { switchToTab(userTabs[currentIndex + 1].id); true }
+                        diff < -150 && currentIndex > 0 ->
+                            { switchToTab(userTabs[currentIndex - 1].id); true }
+                        else -> false
+                    }
+                }
+                else -> false
+            }
+        }
         splitBtn.setOnClickListener     { enterSplitMode() }
         exitSplitBtn.setOnClickListener { exitSplitMode() }
 
@@ -1050,76 +1028,6 @@ class MainActivity : AppCompatActivity() {
         tabCountBtn.text = tabManager.getUserTabs().size.toString()
     }
 
-    private fun renderTabOverlay() {
-        tabOverlay.removeAllViews()
-        val scroll = ScrollView(this).apply {
-            layoutParams = FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.MATCH_PARENT,
-                FrameLayout.LayoutParams.MATCH_PARENT
-            )
-        }
-        val list = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(16, 16, 16, 16)
-        }
-
-        for (tab in tabManager.getTabs()) {
-            val card = LinearLayout(this).apply {
-                orientation = LinearLayout.HORIZONTAL
-                background = androidx.core.content.ContextCompat.getDrawable(this@MainActivity, R.drawable.bg_tab_card)
-                setPadding(16, 12, 16, 12)
-                gravity = android.view.Gravity.CENTER_VERTICAL
-            }
-
-            tab.thumbnail?.let { thumb ->
-                card.addView(android.widget.ImageView(this).apply {
-                    setImageBitmap(thumb)
-                    layoutParams = LinearLayout.LayoutParams(120, 80).apply { marginEnd = 12 }
-                    scaleType = android.widget.ImageView.ScaleType.CENTER_CROP
-                })
-            }
-
-            card.addView(TextView(this).apply {
-                text = when {
-                    tab.isRedirectTab      -> "⇄ redirect  —  ${tab.url.take(40)}"
-                    tab.url == HOME        -> "marrow home"
-                    tab.title.isNotBlank() -> tab.title
-                    else                   -> tab.url
-                }
-                textSize = 12f
-                setTextColor(
-                    if (tab.isRedirectTab) Color.parseColor("#c8a840")
-                    else                   Color.parseColor("#f0ead6")
-                )
-                layoutParams = LinearLayout.LayoutParams(
-                    0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f
-                )
-            })
-
-
-            card.setOnClickListener { switchToTab(tab.id) }
-            card.setOnLongClickListener { closeTab(tab.id); true }
-            var swipeStartX = 0f
-            card.setOnTouchListener { v, ev ->
-                when (ev.action) {
-                    android.view.MotionEvent.ACTION_DOWN -> { swipeStartX = ev.x; false }
-                    android.view.MotionEvent.ACTION_UP -> {
-                        if (swipeStartX - ev.x > 150) { closeTab(tab.id); true }
-                        else false
-                    }
-                    else -> false
-                }
-            }
-
-            list.addView(card, LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply { bottomMargin = 8 })
-        }
-
-        scroll.addView(list)
-        tabOverlay.addView(scroll)
-    }
 
     // ════════════════════════════════════════════════════════════
     // Tab actions
@@ -1134,7 +1042,6 @@ class MainActivity : AppCompatActivity() {
         // Tabs always belong to the main webView, not the split pane.
         webView.loadUrl(HOME)
         renderTabStrip()
-        tabOverlay.visibility = View.GONE
     }
 
     private fun switchToTab(id: Int) {
@@ -1145,26 +1052,22 @@ class MainActivity : AppCompatActivity() {
         webView.loadUrl(tab.url)
         urlInput.setText(if (tab.url == HOME) "marrow" else tab.title.takeIf { it.isNotBlank() } ?: "")
         renderTabStrip()
-        tabOverlay.visibility = View.GONE
     }
 
     private fun closeTab(id: Int) {
-        // If closing the redirect tab, also destroy the dummy WebView
         if (tabManager.getRedirectTab()?.id == id) {
             dummyWebView?.destroy()
             dummyWebView = null
         }
         val next = tabManager.closeTab(id)
         val target = activeWebView()
-        if (next != null) {
+        if (next != null && !next.isRedirectTab) {
             target.loadUrl(next.url)
             urlInput.setText(if (next.url == HOME) "marrow" else next.title.takeIf { it.isNotBlank() } ?: "")
-        } else {
-            target.loadUrl(HOME)
-            urlInput.setText("marrow")
+        } else if (tabManager.getUserTabs().isEmpty()) {
+            openNewTab()
         }
         renderTabStrip()
-        tabOverlay.visibility = View.GONE
     }
 
     // ════════════════════════════════════════════════════════════
