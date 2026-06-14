@@ -624,21 +624,24 @@ class MainActivity : AppCompatActivity() {
 
     private fun hideChrome() {
         if (chromeHidden) return
-        chromeHidden = true
         val h = bottomChrome.height.takeIf { it > 0 }
             ?: bottomChrome.measuredHeight.takeIf { it > 0 }
-            ?: return
+        if (h == null) { bottomChrome.post { hideChrome() }; return }
+        chromeHidden = true
+        bottomChrome.animate().cancel()
         bottomChrome.animate()
             .translationY(h.toFloat())
             .alpha(0f)
-            .setDuration(200).start()
+            .setDuration(200)
+            .withEndAction { bottomChrome.visibility = View.INVISIBLE }
+            .start()
     }
-
-    
 
     fun showChrome() {
         if (!chromeHidden) return
         chromeHidden = false
+        bottomChrome.animate().cancel()
+        bottomChrome.visibility = View.VISIBLE
         bottomChrome.animate()
             .translationY(0f)
             .alpha(1f)
