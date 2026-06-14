@@ -241,8 +241,16 @@ class MainActivity : AppCompatActivity() {
     // ════════════════════════════════════════════════════════════
 
 
-    override fun onResume() { super.onResume() }
-    override fun onPause()  { super.onPause() }
+    override fun onConfigurationChanged(newConfig: android.content.res.Configuration) {
+        super.onConfigurationChanged(newConfig)
+        // Let WebView adapt to orientation change without recreating the activity.
+        // This is what allows site landscape buttons and screen.orientation.lock() to work.
+        webView.requestLayout()
+        splitWebView.requestLayout()
+    }
+
+    override fun onResume() { super.onResume(); webView.onResume(); splitWebView.onResume() }
+    override fun onPause()  { super.onPause(); webView.onPause(); splitWebView.onPause() }
 
     // ════════════════════════════════════════════════════════════
     // Main WebView setup
@@ -290,6 +298,7 @@ class MainActivity : AppCompatActivity() {
                 customViewCallback = callback
                 fullscreenContainer.addView(view)
                 fullscreenContainer.visibility = View.VISIBLE
+                hideChrome()
                 window.decorView.systemUiVisibility =
                     View.SYSTEM_UI_FLAG_FULLSCREEN or
                     View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
@@ -479,6 +488,7 @@ class MainActivity : AppCompatActivity() {
                 customViewCallback = callback
                 fullscreenContainer.addView(view)
                 fullscreenContainer.visibility = View.VISIBLE
+                hideChrome()
                 window.decorView.systemUiVisibility =
                     View.SYSTEM_UI_FLAG_FULLSCREEN or
                     View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
@@ -567,7 +577,7 @@ class MainActivity : AppCompatActivity() {
             userAgentString = userAgentString.replace("; wv", "")
 
             // ── Security fixes ──────────────────────────────────
-            mediaPlaybackRequiresUserGesture = true   // prevent autoplaying media
+            mediaPlaybackRequiresUserGesture = false  // allow muted preview autoplay
             @Suppress("DEPRECATION")
             setSafeBrowsingEnabled(true)              // Google Safe Browsing
             mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
@@ -817,7 +827,7 @@ class MainActivity : AppCompatActivity() {
     // ════════════════════════════════════════════════════════════
     override fun onBackPressed() {
         if (customView != null) {
-            webView.webChromeClient?.onHideCustomView()
+            activeWebView().webChromeClient?.onHideCustomView()
             return
         }
         val active = activeWebView()
