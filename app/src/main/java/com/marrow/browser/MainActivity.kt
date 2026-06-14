@@ -864,6 +864,7 @@ class MainActivity : AppCompatActivity() {
         splitBtn.setOnClickListener     { enterSplitMode() }
         splitBtn.setOnLongClickListener  { imagePickerLauncher.launch("image/*"); true }
         exitSplitBtn.setOnClickListener { exitSplitMode() }
+        exitSplitBtn.setOnLongClickListener { imagePickerLauncher.launch("image/*"); true }
 
         topTitleBar.setOnClickListener    { if (isSplitMode) setActivePane(false) }
         bottomTitleBar.setOnClickListener { if (isSplitMode) setActivePane(true) }
