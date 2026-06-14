@@ -303,7 +303,7 @@
     pip.style.background = '#c8a34a';
     if (val.startsWith('http://') || val.startsWith('https://')) {
       window.location.href = val;
-    } else if (/^[a-zA-Z0-9-]+\.[a-zA-Z]{2,}/.test(val) && !val.includes(' ')) {
+    } else if (/^[a-zA-Z0-9][a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(\/.*)?$/.test(val) && !val.includes(' ')) {
       window.location.href = 'https://' + val;
     } else {
       const base = ENGINES[selectedEngine] || ENGINES['Google'];

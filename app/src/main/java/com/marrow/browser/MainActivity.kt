@@ -671,7 +671,7 @@ class MainActivity : AppCompatActivity() {
         topTitleBar.visibility         = View.GONE
         bottomTitleBar.visibility      = View.GONE
         splitDimOverlay.visibility     = View.GONE
-        topModeRow.visibility          = View.VISIBLE
+        topModeRow.visibility          = View.GONE
 
         setActivePane(false)
     }
@@ -801,7 +801,7 @@ class MainActivity : AppCompatActivity() {
         // Intentionally NOT passing file:// through — loadUrl() bypasses the
         // shouldOverrideUrlLoading() file-scheme block, so we treat it as a
         // plain search term instead to prevent local file disclosure.
-        val tldRegex = Regex("^[^\\s.]+\\.[a-zA-Z]{2,}(\\.[a-zA-Z]{2,})?(/.*)?$")
+        val tldRegex = Regex("^([^\\s.]+\\.)+[a-zA-Z]{2,}(/.*)?$")
         if (!input.contains(" ") && tldRegex.matches(input)) return "https://$input"
         val base = SEARCH_ENGINES[selectedEngine] ?: DDG_BASE
         return base + URLEncoder.encode(input, "UTF-8")
