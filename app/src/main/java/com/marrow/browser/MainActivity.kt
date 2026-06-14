@@ -21,6 +21,7 @@ import android.webkit.WebViewClient
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import java.net.URLEncoder
+import androidx.activity.result.contract.ActivityResultContracts
 
 class MainActivity : AppCompatActivity() {
 
@@ -69,6 +70,15 @@ class MainActivity : AppCompatActivity() {
     // dummyWebView is never attached to the layout; it is used purely
     // to receive and inspect window.open() navigation chains.
     private var dummyWebView: WebView? = null
+
+    private val imagePickerLauncher = registerForActivityResult(
+        ActivityResultContracts.GetContent()
+    ) { uri ->
+        uri ?: return@registerForActivityResult
+        runOnUiThread {
+            activeWebView().loadUrl(uri.toString())
+        }
+    }
 
     // ── Privacy mode ─────────────────────────────────────────────
     // Toggle with a long-press on the tab-count button.
@@ -852,6 +862,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         splitBtn.setOnClickListener     { enterSplitMode() }
+        splitBtn.setOnLongClickListener  { imagePickerLauncher.launch("image/*"); true }
         exitSplitBtn.setOnClickListener { exitSplitMode() }
 
         topTitleBar.setOnClickListener    { if (isSplitMode) setActivePane(false) }
