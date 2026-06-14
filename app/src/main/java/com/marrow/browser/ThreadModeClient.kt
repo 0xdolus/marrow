@@ -43,6 +43,7 @@ class ThreadModeClient : WebViewClient() {
     // ── Page lifecycle ─────────────────────────────────────────────────────────
     override fun onPageFinished(view: WebView, url: String) {
         onPageLoaded?.invoke(url)
+        view.evaluateJavascript(MainActivity.SCROLL_SCRIPT, null)
     }
 
     override fun onPageStarted(view: WebView, url: String, favicon: Bitmap?) {

@@ -267,6 +267,7 @@ class MainActivity : AppCompatActivity() {
                 tabManager.updateActiveUrl(url)
                 renderTabStrip()
                 readThemeColor()
+                showChrome()
             }
         }
 
@@ -601,8 +602,11 @@ class MainActivity : AppCompatActivity() {
     private fun hideChrome() {
         if (chromeHidden) return
         chromeHidden = true
+        val h = bottomChrome.height.takeIf { it > 0 }
+            ?: bottomChrome.measuredHeight.takeIf { it > 0 }
+            ?: return
         bottomChrome.animate()
-            .translationY(bottomChrome.height.toFloat())
+            .translationY(h.toFloat())
             .setDuration(200).start()
     }
 
