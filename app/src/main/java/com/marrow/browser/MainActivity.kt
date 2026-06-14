@@ -187,23 +187,12 @@ class MainActivity : AppCompatActivity() {
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         webView.saveState(outState)
-        val tab = tabManager.getActiveTab()
-        if (tab != null && tab.url.isNotBlank() && tab.url != HOME) {
-            outState.putString("active_url", tab.url)
-            outState.putString("active_title", tab.title)
-        }
     }
+
 
     override fun onRestoreInstanceState(savedState: Bundle) {
         super.onRestoreInstanceState(savedState)
-        val url = savedState.getString("active_url") ?: return
-        val title = savedState.getString("active_title") ?: ""
-        tabManager.updateActiveUrl(url)
-        tabManager.updateActiveTitle(title)
         webView.restoreState(savedState)
-        urlInput.setText(title.takeIf { it.isNotBlank() } ?: url)
-        // Without this call the tab strip keeps showing the stale HOME tab
-        // created by setupTabManager() rather than the restored tab's title/URL.
         renderTabStrip()
     }
 
