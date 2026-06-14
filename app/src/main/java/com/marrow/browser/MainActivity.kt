@@ -100,7 +100,8 @@ class MainActivity : AppCompatActivity() {
   if (window.__scrollBridgeInstalled) return;
   window.__scrollBridgeInstalled = true;
   var lastY = 0, accDown = 0, accUp = 0, hidden = false;
-  window.addEventListener('scroll', function() {
+  function resetState() { lastY = 0; accDown = 0; accUp = 0; hidden = false; }
+  function onScroll() {
     var y = window.scrollY;
     var delta = y - lastY;
     lastY = y;
@@ -113,7 +114,13 @@ class MainActivity : AppCompatActivity() {
       hidden = false; accUp = 0;
       ScrollBridge.onScrollDirectionChanged('up');
     }
-  }, { passive: true });
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  var origPush    = history.pushState.bind(history);
+  var origReplace = history.replaceState.bind(history);
+  history.pushState    = function() { origPush.apply(history, arguments);    resetState(); };
+  history.replaceState = function() { origReplace.apply(history, arguments); resetState(); };
+  window.addEventListener('popstate', resetState);
 })();
 """.trimIndent()
         const val DDG_BASE          = "https://www.google.com/search?q="
@@ -265,7 +272,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onResume() { super.onResume(); webView.onResume(); splitWebView.onResume() }
-    override fun onPause()  { super.onPause(); webView.onPause(); splitWebView.onPause() }
+    override fun onPause()  { super.onPause(); webView.onPause(); splitWebView.onPause(); CookieManager.getInstance().flush() }
 
     // ════════════════════════════════════════════════════════════
     // Main WebView setup
@@ -332,6 +339,8 @@ class MainActivity : AppCompatActivity() {
         }
 
         applyFullSettings(webView)
+        CookieManager.getInstance().setAcceptCookie(true)
+        CookieManager.getInstance().setAcceptThirdPartyCookies(webView, true)
         topModeRow.visibility = View.GONE
 
         webView.setOnScrollChangeListener { _, _, scrollY, _, oldScrollY ->
@@ -485,7 +494,6 @@ class MainActivity : AppCompatActivity() {
                 if (privacyModeActive) view?.clearHistory()
                 runOnUiThread {
                     if (splitPaneActive) urlInput.setText("")
-                    showChrome()
                 }
                 view?.evaluateJavascript(SCROLL_SCRIPT, null)
             }
