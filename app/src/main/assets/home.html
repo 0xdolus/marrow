@@ -306,7 +306,8 @@
     } else if (/^[a-zA-Z0-9-]+\.[a-zA-Z]{2,}/.test(val) && !val.includes(' ')) {
       window.location.href = 'https://' + val;
     } else {
-      window.location.href = ENGINES[selectedEngine] + encodeURIComponent(val);
+      const base = ENGINES[selectedEngine] || ENGINES['Google'];
+      window.location.href = base + encodeURIComponent(val);
     }
   }
 

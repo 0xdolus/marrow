@@ -157,7 +157,7 @@ class MainActivity : AppCompatActivity() {
         setupUrlBar()
         setupButtons()
         checkForUpdate()
-        navigateTo(HOME, webView)
+        if (savedInstanceState == null) navigateTo(HOME, webView)
     }
 
     // ════════════════════════════════════════════════════════════
@@ -279,6 +279,7 @@ class MainActivity : AppCompatActivity() {
                 isUserGesture: Boolean,
                 resultMsg: Message
             ): Boolean {
+                if (!isUserGesture) return@onCreateWindow false
                 handlePopupWindow(resultMsg)
                 return true
             }
