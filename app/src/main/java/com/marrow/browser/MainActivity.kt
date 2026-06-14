@@ -115,7 +115,7 @@ class MainActivity : AppCompatActivity() {
   }, { passive: true });
 })();
 """.trimIndent()
-        const val DDG_BASE          = "https://yandex.com/search/?text="
+        const val DDG_BASE          = "https://www.google.com/search?q="
 
         val SEARCH_ENGINES = mapOf(
             "Google"       to "https://www.google.com/search?q=",
