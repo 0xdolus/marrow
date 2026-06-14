@@ -76,7 +76,11 @@ class MainActivity : AppCompatActivity() {
     ) { uri ->
         uri ?: return@registerForActivityResult
         runOnUiThread {
-            activeWebView().loadUrl(uri.toString())
+            val html = """<!DOCTYPE html><html><head>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=10,user-scalable=yes">
+<style>*{margin:0;padding:0;background:#000}img{width:100%;height:auto;display:block}</style>
+</head><body><img src="$uri"></body></html>"""
+            activeWebView().loadDataWithBaseURL(null, html, "text/html", "UTF-8", null)
         }
     }
 
