@@ -32,6 +32,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var urlInput: EditText
     private lateinit var tabCountBtn: TextView
     private lateinit var tabOverlay: FrameLayout
+    private var tabPopup: android.widget.PopupWindow? = null
     private lateinit var loadingBar: ProgressBar
     private lateinit var paneIndicator: View
 
@@ -860,7 +861,8 @@ class MainActivity : AppCompatActivity() {
     // Buttons
     // ════════════════════════════════════════════════════════════
     private fun setupButtons() {
-                tabCountBtn.setOnLongClickListener {
+        tabCountBtn.setOnClickListener { showTabPopup() }
+        tabCountBtn.setOnLongClickListener {
             openNewTab()
             true
         }
@@ -1048,6 +1050,102 @@ class MainActivity : AppCompatActivity() {
     // ════════════════════════════════════════════════════════════
     private fun renderTabStrip() {
         tabCountBtn.text = tabManager.getUserTabs().size.toString()
+        if (tabPopup?.isShowing == true) showTabPopup()
+    }
+
+    private fun showTabPopup() {
+        tabPopup?.dismiss()
+        val tabs = tabManager.getUserTabs()
+        if (tabs.isEmpty()) return
+
+        val ctx = this
+        val container = android.widget.LinearLayout(ctx).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            setPadding(0, 0, 0, 0)
+        }
+
+        tabs.reversed().forEach { tab ->
+            val isActive = tab.id == tabManager.activeTabId
+            val label = if (tab.url == HOME) "marrow"
+                        else tab.title.takeIf { it.isNotBlank() }
+                            ?: domainFrom(tab.url).takeIf { it.isNotBlank() }
+                            ?: tab.url
+
+            val pill = android.widget.TextView(ctx).apply {
+                text = label
+                textSize = 12f
+                maxLines = 1
+                ellipsize = android.text.TextUtils.TruncateAt.END
+                setTextColor(android.graphics.Color.parseColor(
+                    if (isActive) "#c8bfaf" else "#888888"
+                ))
+                val pad = (6 * resources.displayMetrics.density).toInt()
+                val padH = (14 * resources.displayMetrics.density).toInt()
+                setPadding(padH, pad, padH, pad)
+                setBackgroundResource(
+                    if (isActive) R.drawable.bg_tab_pill_active else R.drawable.bg_tab_pill
+                )
+                val lp = android.widget.LinearLayout.LayoutParams(
+                    android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
+                    android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
+                )
+                lp.bottomMargin = (4 * resources.displayMetrics.density).toInt()
+                layoutParams = lp
+            }
+
+            pill.setOnClickListener {
+                tabPopup?.dismiss()
+                if (tab.id != tabManager.activeTabId) switchToTab(tab.id)
+            }
+            pill.setOnLongClickListener {
+                tabPopup?.dismiss()
+                closeTab(tab.id)
+                true
+            }
+            container.addView(pill)
+        }
+
+        val newTabPill = android.widget.TextView(ctx).apply {
+            text = "+ new tab"
+            textSize = 12f
+            setTextColor(android.graphics.Color.parseColor("#5a9a5a"))
+            val pad = (6 * resources.displayMetrics.density).toInt()
+            val padH = (14 * resources.displayMetrics.density).toInt()
+            setPadding(padH, pad, padH, pad)
+            setBackgroundResource(R.drawable.bg_tab_pill)
+            val lp = android.widget.LinearLayout.LayoutParams(
+                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
+                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+            lp.bottomMargin = (4 * resources.displayMetrics.density).toInt()
+            layoutParams = lp
+        }
+        newTabPill.setOnClickListener {
+            tabPopup?.dismiss()
+            openNewTab()
+        }
+        container.addView(newTabPill, 0)
+
+        container.measure(
+            android.view.View.MeasureSpec.makeMeasureSpec(0, android.view.View.MeasureSpec.UNSPECIFIED),
+            android.view.View.MeasureSpec.makeMeasureSpec(0, android.view.View.MeasureSpec.UNSPECIFIED)
+        )
+
+        val popup = android.widget.PopupWindow(
+            container,
+            android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
+            android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
+            true
+        ).apply {
+            setBackgroundDrawable(android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT))
+            elevation = 8f * resources.displayMetrics.density
+            isOutsideTouchable = true
+        }
+        tabPopup = popup
+
+        val popupH = container.measuredHeight
+        val yOff = -(popupH + tabCountBtn.height + (8 * resources.displayMetrics.density).toInt())
+        popup.showAsDropDown(tabCountBtn, 0, yOff)
     }
 
 
