@@ -622,14 +622,18 @@ class MainActivity : AppCompatActivity() {
             ?: return
         bottomChrome.animate()
             .translationY(h.toFloat())
+            .alpha(0f)
             .setDuration(200).start()
     }
+
+    
 
     fun showChrome() {
         if (!chromeHidden) return
         chromeHidden = false
         bottomChrome.animate()
             .translationY(0f)
+            .alpha(1f)
             .setDuration(200).start()
     }
 
