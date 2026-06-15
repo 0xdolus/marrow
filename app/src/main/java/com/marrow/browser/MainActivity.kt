@@ -22,6 +22,9 @@ import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import java.net.URLEncoder
 import androidx.activity.result.contract.ActivityResultContracts
+import android.net.Uri
+import android.webkit.ValueCallback
+import android.app.Activity
 
 class MainActivity : AppCompatActivity() {
 
@@ -72,16 +75,51 @@ class MainActivity : AppCompatActivity() {
     // to receive and inspect window.open() navigation chains.
     private var dummyWebView: WebView? = null
 
+    private var imageViewerUris: List<android.net.Uri> = emptyList()
+    private var imageViewerPreviousUrl: String? = null
+
     private val imagePickerLauncher = registerForActivityResult(
-        ActivityResultContracts.GetContent()
-    ) { uri ->
-        uri ?: return@registerForActivityResult
-        runOnUiThread {
-            val html = """<!DOCTYPE html><html><head>
+        ActivityResultContracts.GetMultipleContents()
+    ) { uris ->
+        if (uris.isNullOrEmpty()) return@registerForActivityResult
+        runOnUiThread { loadImageViewer(uris, 0) }
+    }
+
+    private fun loadImageViewer(uris: List<android.net.Uri>, index: Int) {
+        if (index !in uris.indices) return
+        val bytes = contentResolver.openInputStream(uris[index])?.use { it.readBytes() } ?: return
+        val b64 = android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP)
+        val mime = contentResolver.getType(uris[index]) ?: "image/jpeg"
+        val closeUrl = (imageViewerPreviousUrl ?: HOME).replace("'", "\\'")
+        val prev = if (index > 0) "<button onclick='ImageViewer.goTo(${index-1})'>&#8592;</button>" else "<button disabled>&#8592;</button>"
+        val next = if (index < uris.size - 1) "<button onclick='ImageViewer.goTo(${index+1})'>&#8594;</button>" else "<button disabled>&#8594;</button>"
+        val counter = if (uris.size > 1) "<span>${index+1} / ${uris.size}</span>" else ""
+        val html = """<!DOCTYPE html><html><head>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=10,user-scalable=yes">
-<style>*{margin:0;padding:0;background:#000}img{width:100%;height:auto;display:block}</style>
-</head><body><img src="$uri"></body></html>"""
-            activeWebView().loadDataWithBaseURL(null, html, "text/html", "UTF-8", null)
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#000;display:flex;flex-direction:column;height:100vh}
+#bar{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#111;flex-shrink:0}
+button{background:#222;color:#ccc;border:none;padding:6px 14px;border-radius:6px;font-size:15px}
+button[disabled]{opacity:0.3}
+span{color:#888;font-size:13px}
+#wrap{flex:1;overflow:auto;display:flex;align-items:center;justify-content:center}
+img{max-width:100%;height:auto;display:block}
+</style></head>
+<body>
+<div id="bar">$prev $counter $next <button onclick="location.href='$closeUrl'">&#x2715;</button></div>
+<div id="wrap"><img src="data:$mime;base64,$b64"></div>
+</body></html>"""
+        imageViewerUris = uris
+        webView.settings.builtInZoomControls = true
+        webView.settings.displayZoomControls = false
+        webView.loadDataWithBaseURL(HOME, html, "text/html", "UTF-8", null)
+    }
+
+    inner class ImageViewerBridge {
+        @android.webkit.JavascriptInterface
+        fun goTo(index: Int) {
+            runOnUiThread { loadImageViewer(imageViewerUris, index) }
         }
     }
 
@@ -295,6 +333,7 @@ class MainActivity : AppCompatActivity() {
 
         webView.webViewClient = threadClient
         webView.addJavascriptInterface(ScrollBridge(), "ScrollBridge")
+        webView.addJavascriptInterface(ImageViewerBridge(), "ImageViewer")
         webView.webChromeClient = object : WebChromeClient() {
             override fun onProgressChanged(view: WebView?, newProgress: Int) {
                 if (!splitPaneActive) {
@@ -335,6 +374,17 @@ class MainActivity : AppCompatActivity() {
                 customViewCallback?.onCustomViewHidden()
                 customView = null
                 customViewCallback = null
+            }
+
+            override fun onShowFileChooser(
+                view: WebView,
+                filePath: ValueCallback<Array<Uri>>,
+                params: FileChooserParams
+            ): Boolean {
+                filePathCallback?.onReceiveValue(null)
+                filePathCallback = filePath
+                fileChooserLauncher.launch(params.createIntent())
+                return true
             }
         }
 
@@ -612,6 +662,8 @@ class MainActivity : AppCompatActivity() {
             else
                 WebSettings.LOAD_DEFAULT
             if (privacyModeActive) setGeolocationEnabled(false)
+            builtInZoomControls = false
+            displayZoomControls = false
         }
     }
 
@@ -883,9 +935,9 @@ class MainActivity : AppCompatActivity() {
         }
 
         splitBtn.setOnClickListener     { enterSplitMode() }
-        splitBtn.setOnLongClickListener  { imagePickerLauncher.launch("image/*"); true }
+        splitBtn.setOnLongClickListener  { imageViewerPreviousUrl = webView.url; imagePickerLauncher.launch("image/*"); true }
         exitSplitBtn.setOnClickListener { exitSplitMode() }
-        exitSplitBtn.setOnLongClickListener { imagePickerLauncher.launch("image/*"); true }
+        exitSplitBtn.setOnLongClickListener { imageViewerPreviousUrl = webView.url; imagePickerLauncher.launch("image/*"); true }
 
         topTitleBar.setOnClickListener    { if (isSplitMode) setActivePane(false) }
         bottomTitleBar.setOnClickListener { if (isSplitMode) setActivePane(true) }
