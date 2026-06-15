@@ -138,7 +138,13 @@ img{max-width:100%;height:auto;display:block}
   if (window.__scrollBridgeInstalled) return;
   window.__scrollBridgeInstalled = true;
   var lastY = 0, accDown = 0, accUp = 0, hidden = false;
-  function resetState() { lastY = 0; accDown = 0; accUp = 0; hidden = false; }
+  function resetState() {
+    lastY = window.scrollY;
+    accDown = 0;
+    accUp = 0;
+    hidden = false;
+    ScrollBridge.onScrollDirectionChanged('up');
+  }
   function onScroll() {
     var y = window.scrollY;
     var delta = y - lastY;
@@ -545,7 +551,7 @@ img{max-width:100%;height:auto;display:block}
                 runOnUiThread {
                     if (splitPaneActive) urlInput.setText("")
                 }
-                view?.evaluateJavascript(SCROLL_SCRIPT, null)
+                // SCROLL_SCRIPT not injected here; splitWebView scroll does not control the bottom chrome bar
             }
         }
 
@@ -685,7 +691,7 @@ img{max-width:100%;height:auto;display:block}
             .translationY(h.toFloat())
             .alpha(0f)
             .setDuration(200)
-            .withEndAction { bottomChrome.visibility = View.INVISIBLE }
+            .withEndAction { if (chromeHidden) bottomChrome.visibility = View.INVISIBLE }
             .start()
     }
 
@@ -693,11 +699,14 @@ img{max-width:100%;height:auto;display:block}
         if (!chromeHidden) return
         chromeHidden = false
         bottomChrome.animate().cancel()
+        bottomChrome.translationY = 0f
         bottomChrome.visibility = View.VISIBLE
         bottomChrome.animate()
             .translationY(0f)
             .alpha(1f)
-            .setDuration(200).start()
+            .setDuration(200)
+            .withEndAction { bottomChrome.translationY = 0f; bottomChrome.alpha = 1f }
+            .start()
     }
 
     inner class ScrollBridge {
