@@ -77,6 +77,9 @@ class MainActivity : AppCompatActivity() {
 
     private var imageViewerUris: List<android.net.Uri> = emptyList()
     private var imageViewerPreviousUrl: String? = null
+    // ── File chooser ─────────────────────────────────────────────
+    private var filePathCallback: ValueCallback<Array<Uri>>? = null
+    private lateinit var fileChooserLauncher: androidx.activity.result.ActivityResultLauncher<android.content.Intent>
 
     private val imagePickerLauncher = registerForActivityResult(
         ActivityResultContracts.GetMultipleContents()
@@ -213,6 +216,17 @@ img{max-width:100%;height:auto;display:block}
     // ════════════════════════════════════════════════════════════
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        fileChooserLauncher = registerForActivityResult(
+            ActivityResultContracts.StartActivityForResult()
+        ) { result ->
+            val uris = if (result.resultCode == Activity.RESULT_OK) {
+                result.data?.data?.let { arrayOf(it) } ?: emptyArray()
+            } else emptyArray()
+            filePathCallback?.onReceiveValue(uris)
+            filePathCallback = null
+        }
+
         setContentView(R.layout.activity_main)
 
         bindViews()
