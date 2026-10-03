@@ -4,7 +4,11 @@
 
 <strong>A minimal, fast Android browser built for people who like the internet without the circus.</strong>
 
-No ads. No tracking. No bloat. Just pages, tabs, and a split screen that actually behaves.
+<br>
+
+No bloat. No third-party libraries. Just pages, tabs, and a split screen that actually behaves.
+
+<br><br>
 
 ![Platform](https://img.shields.io/badge/platform-Android-3DDC84?style=for-the-badge&logo=android&logoColor=white)
 ![Kotlin](https://img.shields.io/badge/Kotlin-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white)
@@ -16,145 +20,248 @@ No ads. No tracking. No bloat. Just pages, tabs, and a split screen that actuall
 
 ---
 
-## ⚙️ What is marrow?
+## 🔥 What is marrow?
 
-`marrow` is a deliberately small Android browser built around a simple idea: the web should be fast, private, and usable without turning your phone into a billboard.
+`marrow` is a deliberately small Android browser built around a simple idea: the web should be fast and usable without turning your phone into a billboard.
 
-It uses a native Android UI with `WebView` under the hood, keeps the dependency graph at zero, and focuses on the features that matter: split browsing, local-first tools, privacy controls, and tab management that doesn't feel like a spreadsheet with feelings.
+It uses a native Android UI with `WebView` under the hood, keeps the dependency graph at zero, and focuses on the features that matter: split browsing, local-first tools, privacy controls, and tab management that stays out of your way.
 
 ---
 
 ## ✨ Highlights
 
-- ✂️ **Dual-pane split screen** with two independent `WebView` instances
-- ⚡ **Offline-first homepage** served from local assets for instant load times
-- 🔎 **30 homepage search engines** and **9 native picker engines**
-- 🕶️ **Privacy mode** that wipes browsing data and disables sensitive APIs
-- 🗂️ **Tab system** with thumbnails, popup switching, and a visual tab overview
-- 🖼️ **Built-in image viewer** for local images and base64-backed previews
-- 📦 **Pure Kotlin + Android WebView** with zero third-party dependencies
-- 🧠 **Behavioral tuning** like pane-aware back navigation and split-screen UX details
+<table>
+<tr>
+<td width="50%">
+
+### ✂️ Split screen
+
+- Two independent `WebView` instances
+- Resizable panes
+- 50/50 snap
+- Active-pane routing
+- Pane-aware back navigation
+- Dedicated exit control
+
+</td>
+<td width="50%">
+
+### 🗂️ Tabs
+
+- Up to **4 tabs**
+- Visual tab overview
+- Tab thumbnails
+- Popup / redirect handling
+- Long-press tab creation
+- Automatic oldest-tab eviction
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+### 🔎 Search
+
+- **30 homepage engines**
+- **9 native picker engines**
+- Independent defaults
+- Local preference storage
+- Image search follows the native engine
+
+</td>
+<td>
+
+### 🕶️ Privacy
+
+- Browsing-data wipe
+- Geolocation disabled
+- Restrictive cache mode
+- Cookie cleanup on exit
+- Privacy status indicator
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+### 🖼️ Image viewer
+
+- Multi-select image import
+- Previous / next navigation
+- Image counter
+- Pinch-to-zoom
+- UI zoom controls
+- Base64 image support
+
+</td>
+<td>
+
+### ⚡ Local-first
+
+- Offline homepage
+- Local HTML assets
+- No remote homepage dependency
+- Lightweight startup
+- Fewer unnecessary requests
+
+</td>
+</tr>
+</table>
 
 ---
 
-## ✂️ Split screen architecture
+## ✂️ Split screen
 
-```
+```text
 ┌──────────────────────┐
-│  🟢 Top pane          │  ← routing target when green is active
+│  🟢 Top pane          │
 │                      │
-├──────── ▬▬▬ ─────────┤  ← drag to resize · double-tap = 50/50
-│  🔵 Bottom pane       │  ← routing target when blue is active
+├──────── ▬▬▬ ─────────┤
+│  🔵 Bottom pane       │
 │                      │
 └──────────────────────┘
 ```
 
-- Two independent `WebView` instances, top and bottom
+- Two independent WebViews, top and bottom
 - Drag the divider to resize the panes
-- Double-tap the split handle to snap back to a 50/50 layout
-- Tabs route to the currently active pane
-- Back behavior respects the active pane instead of randomly doing whatever it wants
-- A dedicated exit-split control sits at the bottom for quick escape
+- Double-tap the divider to snap back to 50/50
+- Tabs route to the currently active pane (green = top, blue = bottom)
+- Back respects the active pane
+- A dedicated exit-split bar sits at the bottom
 
 ---
 
-## 🔎 Search engine system
+## 🔎 Search engines
 
 Marrow ships with two separate engine lists for different surfaces.
 
-| Surface | Engines | Default |
-|---|---:|---|
-| Homepage dropdown | 30 | Google (`localStorage`) |
-| Native URL bar picker | 9 | Brave Search (`SharedPreferences`) |
+<table>
+<tr>
+<th>Surface</th>
+<th>Engines</th>
+<th>Default</th>
+</tr>
+<tr>
+<td><b>Homepage dropdown</b></td>
+<td>30</td>
+<td>Google</td>
+</tr>
+<tr>
+<td><b>Native URL bar picker</b></td>
+<td>9</td>
+<td>Brave Search</td>
+</tr>
+</table>
 
 <details>
-<summary><b>Homepage engines (30)</b></summary>
+<summary><b>🌐 Homepage engines · 30</b></summary>
+<br>
 
-Google, Bing, Yahoo, Yandex, DuckDuckGo, Brave, YouTube, Gibiru, Perplexity, You.com, Startpage, Baidu, Kagi, Ecosia, Qwant, Naver, Swisscows, Reddit, Andi, Phind, Mojeek, MetaGer, Wikipedia, Gigablast, Presearch, Searx, Dogpile, Google Scholar, Wolfram Alpha, AOL Search
+Google · Bing · Yahoo · Yandex · DuckDuckGo · Brave · YouTube · Gibiru · Perplexity · You.com · Startpage · Baidu · Kagi · Ecosia · Qwant · Naver · Swisscows · Reddit · Andi · Phind · Mojeek · MetaGer · Wikipedia · Gigablast · Presearch · Searx · Dogpile · Google Scholar · Wolfram Alpha · AOL Search
+
+Default: Google · Storage: `localStorage`
 
 </details>
 
 <details>
-<summary><b>Native picker engines (9)</b></summary>
+<summary><b>📱 Native picker engines · 9</b></summary>
+<br>
 
-Google, DuckDuckGo, Brave Search, Perplexity, Bing, Kagi, Startpage, Ecosia, Qwant
+Google · DuckDuckGo · Brave Search · Perplexity · Bing · Kagi · Startpage · Ecosia · Qwant
+
+Default: Brave Search · Storage: `SharedPreferences`
 
 </details>
 
-Image search follows the currently selected native engine. Because apparently the browser should be opinionated, but not chaotic.
+<details>
+<summary><b>🖼️ Image search</b></summary>
+<br>
+
+Image search uses whichever native engine is currently selected.
+
+</details>
 
 ---
 
 ## 🗂️ Tabs and browsing flow
 
-- Up to **4 tabs** before the oldest one gets evicted like an old file in a temp folder
-- Separate system tab handling for popups and redirect traffic
-- Tab popup lets you switch, close, or create a new tab
-- Long-press the tab counter to open a new tab immediately
-- Tab previews are captured from the active pane
-- Visual tab switcher keeps things readable instead of “why is this list so ancient?”
+- Up to **4 tabs**; the oldest is closed when you hit the limit
+- A separate system tab handles popups and redirects
+- Tab popup lets you switch, close, or open a new tab
+- Long-press the tab counter to open a new tab instantly
+- Thumbnails are captured from the active pane
+- Visual tab switcher
 
 ---
 
-## 🏠 Homepage and local-first UX
+## 🏠 Homepage
 
-Marrow includes a local asset homepage at `file:///android_asset/home.html`, which means:
+The homepage is a local asset:
 
-- instant loading with no network dependency
-- a fast search entry point
-- a lightweight status pip in the corner
-- fewer pointless network requests before the browser even starts doing browser things
+```
+file:///android_asset/home.html
+```
+
+- Instant loading, no network dependency
+- Search bar with an engine dropdown
+- A small status pip in the corner
 
 ---
 
-## 🕶️ Privacy controls
+## 🕶️ Privacy mode
+
+<details>
+<summary><b>🔐 What it changes</b></summary>
+<br>
 
 - One toggle clears history, cache, and form data
-- Geolocation is disabled in privacy mode
-- Cache handling is switched to a more restrictive mode
+- Geolocation is disabled
+- Cache handling switches to a more restrictive mode
 - Cookies are cleared when the app is destroyed
-- The status pip turns **blue** while privacy mode is active
+- The status pip turns blue while privacy mode is active
 
-This is not a privacy theater product. It is a browser that actually tries to behave.
+</details>
 
 ---
 
 ## 🖼️ Image viewer
 
-Long-press the split button (or the exit-split button) to open the system image picker.
+Long-press the split button or the exit-split button to open the system image picker.
 
 - Multi-select image import
 - Previous / next navigation with a counter
 - Pinch-to-zoom and UI zoom controls
-- Base64 image payloads rendered inside a local HTML wrapper
-
-It is basically the browser equivalent of “yeah, I have a gallery, but make it useful.”
+- Images render as base64 inside a local HTML wrapper
 
 ---
 
 ## 🧰 Under the hood
 
+<details>
+<summary><b>⚙️ Browser internals</b></summary>
+<br>
+
 - Fullscreen video support
-- `<input type="file">` uploads via native file chooser
-- Cookie persistence with flush-on-pause behavior
-- Ad/tracker popup blocklist covering known bad actors like `doubleclick` and `taboola`
+- `<input type="file">` uploads via the native file chooser
+- Cookie persistence with flush on pause
+- Popup blocklist for known ad/tracker domains (doubleclick, taboola, etc.)
 - Popup URL promotion for video and player streams
-- Reads the page's `theme-color` meta tag for a cleaner UI feel
+- Reads the page's theme-color meta tag
 - Google Safe Browsing enabled
 - GitHub release-based update checks
-- Download listener with cookie-aware support
+- Download listener with cookie support
 - Browser bar auto-hides on scroll
-- Landscape and rotation responsiveness
+- Landscape and rotation support
+
+</details>
 
 ---
 
 ## 🛠️ Build
 
-### Requirements
-
-- Android Studio
-- JDK 17
-- Android SDK 35
+**Requirements:** Android Studio · JDK 17 · Android SDK 35
 
 ```bash
 git clone https://github.com/0xdolus/marrow.git
@@ -168,22 +275,26 @@ cd marrow
 
 ## 📘 Stack
 
-- **Kotlin**
-- **Android WebView**
-- **No third-party libraries**
+<div align="center">
+
+Kotlin · Android WebView · Android SDK 35
+
+0 third-party dependencies
+
+</div>
 
 ---
 
 ## 🚧 Status
 
-This is a personal project under active development. That means it works, it is useful, and it may occasionally remind you that software is still a living thing.
-
-Expect rough edges. Expect improvements. Expect fewer features than a megacorp browser—and a lot more sanity.
+A personal project under active development. It works, it's useful, and it has rough edges. Expect improvements, and fewer features than a megacorp browser.
 
 ---
 
 <div align="center">
 
-<sub>marrow — the essential part.</sub>
+**marrow**
+
+*the essential part.*
 
 </div>
